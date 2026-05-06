@@ -14,6 +14,8 @@ static TRIGGER_ACTIVE: AtomicBool = AtomicBool::new(false);
 static BAR_TARGET_VISIBLE: AtomicBool = AtomicBool::new(false);
 /// Target x position for animation thread (set by expand/collapse to avoid jump).
 static BAR_TARGET_X: AtomicI32 = AtomicI32::new(0);
+/// Current monitor's work_area right edge (set by decision thread, read by animation thread).
+static BAR_SCREEN_RIGHT: AtomicI32 = AtomicI32::new(0);
 
 /// Ensure only one instance is running (Windows named mutex)
 fn ensure_single_instance() -> Option<winapi::shared::ntdef::HANDLE> {
@@ -242,7 +244,10 @@ fn animate_bar(app_handle: tauri::AppHandle) {
                 continue;
             }
 
-            let screen_right = get_mouse_monitor_work_right();
+            let screen_right = BAR_SCREEN_RIGHT.load(Ordering::SeqCst);
+            if screen_right == 0 {
+                continue;
+            }
 
             // Determine target x:
             // - If BAR_TARGET_X was explicitly set (expand/collapse), use it
@@ -271,13 +276,21 @@ fn animate_bar(app_handle: tauri::AppHandle) {
 
             if current_x != target_x {
                 let diff = target_x - current_x;
-                // Speed: 24px per frame (~1440px/sec), smooth but snappy
-                let step = diff.signum() * diff.abs().min(24);
-                current_x += step;
 
-                // Snap to target when very close
-                if (target_x - current_x).abs() <= step.abs() {
+                // Multi-monitor teleport: if the distance is very large (>500px),
+                // the user moved to a different monitor. Teleport instantly to avoid
+                // the bar flying across the desktop gap.
+                if diff.abs() > 500 {
                     current_x = target_x;
+                } else {
+                    // Normal smooth slide: 24px per frame (~1440px/sec)
+                    let step = diff.signum() * diff.abs().min(24);
+                    current_x += step;
+
+                    // Snap to target when very close
+                    if (target_x - current_x).abs() <= step.abs() {
+                        current_x = target_x;
+                    }
                 }
 
                 // Show window as soon as any part is on-screen
@@ -333,6 +346,10 @@ fn start_auto_hide(app_handle: tauri::AppHandle) {
                 None => continue,
             };
 
+            // Get the monitor where the mouse currently is
+            let screen_right = get_mouse_monitor_work_right();
+            BAR_SCREEN_RIGHT.store(screen_right, Ordering::SeqCst);
+
             let over_bar = mouse.0 >= bar_pos.x && mouse.0 <= bar_pos.x + bar_size.width as i32
                 && mouse.1 >= bar_pos.y && mouse.1 <= bar_pos.y + bar_size.height as i32;
 
@@ -354,7 +371,6 @@ fn start_auto_hide(app_handle: tauri::AppHandle) {
                 }
             }
 
-            let screen_right = get_mouse_monitor_work_right();
             let trigger = TRIGGER_WIDTH.load(Ordering::SeqCst) as i32;
             let near_edge = mouse.0 >= screen_right - trigger;
 
