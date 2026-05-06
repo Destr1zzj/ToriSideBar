@@ -1,114 +1,115 @@
 # 🐦 ToriSidebar
 
-> 微软砍了 Edge 的侧边栏，于是我决定自己动手丰衣足食。
+> Microsoft killed Edge's sidebar. So I built my own.
 >
-> —— 一位被大厂 PUA 惯了的普通用户
+> — A regular user who's been gaslit by big tech one too many times
 
-***
+---
 
-## 为啥做这个？
+## Why Does This Exist?
 
-事情是这样的：Microsoft Edge 那个侧边栏（Sidebar）挺好用的，你懂的——贴边藏着，鼠标一点就开始摸，放几个常用网页，摸鱼效率直接拉满。
+Here's the thing: Microsoft Edge had this neat little sidebar feature. You know the one — tucked away at the edge of your screen, slides out when your mouse gets close, keeps your favorite web apps within a pixel's reach. Peak productivity (and peak procrastination).
 
-然后微软说砍就砍了。
+Then Microsoft killed it.
 
-就跟你用了三年的摸鱼姿势突然被发现然后封掉了一样难受。更气人的是，Edge 的 Copilot 按钮倒是塞得比牛皮癣还牢，真正有用的功能反而一刀砍没。
+Just like that. One day it's there, the next day it's on the chopping block. Meanwhile, the Copilot button is permanently glued to your toolbar like an unwanted houseguest who doesn't understand subtle hints.
 
-**所以，我决定自己写一个。**
+**So I decided to build my own.**
 
-于是就有了 ToriSidebar。名字里的 "Tori" 是日语里鸟的意思 🐦，因为这个工具就像一只小鸟——平时躲在屏幕边缘不吵不闹，你需要的时候扑棱一下就出来了。
+It started as a quick hack to fill the void. But then... multi-monitor support, background session persistence, automatic favicon fetching, random emoji icons — one thing led to another, and now it's somehow better than the original.
 
-***
+The name "Tori" (鳥) means "bird" in Japanese 🐦, because this thing behaves like one: quietly perched at the edge of your screen, invisible until you need it, then *whoosh* — there it is.
 
-## 项目构成
+---
 
-我们这个项目的灵魂成分表，有点像奶茶店的配料单：
+## What's Under the Hood
 
-| 配料       | 品牌                        | 作用                                                  |
-| -------- | ------------------------- | --------------------------------------------------- |
-| 🖥️ 桌面框架 | **Tauri v2** (Rust)       | 负责跟 Windows 勾肩搭背，什么贴边悬浮、系统托盘、单例锁，都是它干的脏活            |
-| ⚛️ 前端框架  | **React 19 + TypeScript** | 边栏那张脸——图标列表、设置面板、弹窗交互                               |
-| 🔧 构建工具  | **Vite**                  | 比 Webpack 快，比我的心情转变得也快                              |
-| 🎨 渲染引擎  | **Edge WebView2**         | 啊对，微软的轮子，我拿来用了                                      |
-| 🦀 底层逻辑  | **Rust + WinAPI**         | 多显示器检测、鼠标触发区、平滑动画……这些精密活只能靠 Rust 佬来写，换我写第二天内存就漏成筛子了 |
+Our ingredient list, presented in the style of a bubble tea shop menu:
 
-目录结构长这样：
+| Ingredient | Brand | What It Does |
+|------------|-------|--------------|
+| 🖥️ Desktop Framework | **Tauri v2** (Rust) | Handles all the OS grunt work — edge detection, system tray, single-instance lock, smooth animations |
+| ⚛️ Frontend | **React 19 + TypeScript** | The pretty face — icon grid, settings panel, modals, all that UI jazz |
+| 🔧 Build Tool | **Vite** | Faster than Webpack, and faster than my mood swings |
+| 🎨 Renderer | **Edge WebView2** | Yes, I'm using Microsoft's engine to build a replacement for Microsoft's product. The irony is not lost on me. |
+| 🦀 Low-level Logic | **Rust + WinAPI** | Multi-monitor detection, mouse trigger zones, slide animations — the kind of precision work that would leak memory in any other language |
+
+Directory layout:
 
 ```
 edge-sidebar/
-├── src/                    # React 前端，负责貌美如花
-│   ├── App.tsx             # 主界面：图标列表 + 各种弹窗
-│   ├── App.css             # 让黑暗模式看起来像那么回事
-│   └── main.tsx            # 入口文件，平平无奇
-├── src-tauri/              # Rust 后端，负责赚钱养家
+├── src/                    # React frontend — responsible for looking good
+│   ├── App.tsx             # Main UI: icon list + all the modals
+│   ├── App.css             # Dark mode that actually looks decent
+│   └── main.tsx            # Entry point. Does entry point things.
+├── src-tauri/              # Rust backend — responsible for doing the heavy lifting
 │   ├── src/
-│   │   └── lib.rs          # 核心逻辑：auto-hide 动画、多显示器、托盘图标、单例锁
-│   ├── Cargo.toml          # Rust 依赖表
-│   ├── tauri.conf.json     # 窗口配置：64px 宽、透明、无框、永远置顶
-│   └── ...                 # 图标、资源文件等
-└── README.md               # 就是你现在看的这玩意
+│   │   └── lib.rs          # Core logic: auto-hide animations, multi-monitor support, tray icon, single-instance enforcement
+│   ├── Cargo.toml          # Rust dependencies
+│   ├── tauri.conf.json     # Window config: 64px wide, transparent, frameless, always-on-top
+│   └── ...                 # Icons, assets, etc.
+├── release/
+│   └── ToriSidebar.exe     # The finished product. Double-click and go.
+└── README.md               # You're reading it right now
 ```
 
-***
+---
 
-## 注意事项（aka 免责声明）
+## Things You Should Know (Aka The Fine Print)
 
-### 🖥️ 多显示器用户看这里 
+### 🖥️ Multi-Monitor Users
 
-大概只会在最有侧展示 没怎么测试过。
+Multi-monitor support is here, but if your setup looks like a mission control center (2×2 grid, diagonal arrangements, that sort of thing), the bar might get confused. **Horizontal arrangements** (side-by-side) work best. If you've got three monitors arranged like a fighter jet cockpit... hey, it'll probably work, but no promises.
 
-支持多显示器，但排列方式太野的话（比如你搞了个 2×2 矩阵或者斜着摆），bar 可能会懵。目前最稳的是**水平排列**（左右扩展）。如果你有三块屏围着你像战斗机座舱一样，那……兄弟你先用着，有问题再喊我。
+### 🖱️ Trigger Zone
 
-### 🖱️ 触发区域
+Default trigger zone is **30 pixels** from the right edge of your screen. On a 4K display, 30px is basically a hairline, so feel free to crank it up in the settings panel. There's a slider. Drag it until it feels right.
 
-默认触发区是屏幕右边缘往左 **30 像素**。如果你的显示器是 4K 的，30px 大概就跟头发丝一样细，可以适当调宽。设置面板里有个滑块，拉到你觉得舒服为止。
+### 🔒 Single Instance
 
-### 🔒 单例运行
+ToriSidebar uses a Windows named mutex to ensure only one instance runs. If you double-click the exe while it's already running, it will **politely ignore you** instead of spawning a second bar. This is not a bug; it's a feature. You're welcome.
 
-ToriSidebar 用了 Windows 命名互斥锁确保只跑一个实例。如果你试图双击第二次，它会**假装什么都没发生**，而不是弹两个栏出来。这不是 bug，是 feature。
+### 🍪 Login Sessions
 
-### 🍪 登录状态
+Each web app runs in its own **independent WebView window** with isolated cookies. This means:
+- ✅ You can be logged into two different Google accounts simultaneously
+- ✅ OAuth / social login works without throwing weird errors
+- ⚠️ If you expect it to remember passwords... that's Windows Credential Manager's job, not mine
 
-每个网页应用都是**独立的 WebView 窗口**，Cookie 互相隔离。这意味着：
+### 🐛 Known Quirks
 
-- ✅ 你可以同时登两个不同的 Google 账号
-- ✅ 社交登录（OAuth）不会跳出莫名其妙的错误
-- ⚠️ 但如果你指望它在边栏里记住密码……那是 Windows 凭据管理器的事
+- Occasionally when teleporting across monitors, the bar might flash for a split second. This is a Windows window manager thing. I don't make the rules, I just work around them.
+- If your taskbar is vertically docked on the right side, the trigger zone and taskbar will have a territorial dispute. Recommend keeping the taskbar at the bottom or left, or reducing the trigger width.
+- Running inside an RDP / remote desktop session is not recommended. WebView2 gets moody in remote sessions.
 
-### 🐛 已知玄学问题
+### 🏗️ Development
 
-- 极偶尔情况下，跨显示器瞬移时 bar 会闪一下。这是 Windows 窗口系统的祖传特性，不是我的锅。
-- 如果你把任务栏竖着放在屏幕右边，那 trigger 区域会和任务栏打架。建议把任务栏放底下或左边，或者把 trigger 宽度调小。
-- 不建议在远程桌面 / RDP 会话里用，WebView2 在远程会话里有时候会闹情绪。
-
-### 🏗️ 开发环境
-
-如果你想自己改代码：
+If you want to tinker:
 
 ```bash
-# 1. 装依赖
+# 1. Install dependencies
 npm install
 
-# 2. 开发模式（带热重载）
+# 2. Dev mode with hot reload
 npm run tauri dev
 
-# 3. 构建发行版
+# 3. Build release binary
 npm run build
 cd src-tauri && cargo build --release
-# 成品在 src-tauri/target/release/edge-sidebar.exe
+# Output: src-tauri/target/release/edge-sidebar.exe
 ```
 
-需要 Node.js + Rust 环境，Windows 10/11 自带 WebView2 Runtime，不用额外装。
+Requires Node.js + Rust toolchain. Windows 10/11 ships with WebView2 Runtime, so no extra installs needed.
 
-***
+---
 
 ## License
 
-MIT —— 随便用，随便改，改出 bug 了别@我就行。
+MIT — Use it, modify it, break it, just don't @ me if it breaks.
 
-但如果这个工具真的帮你提升了摸鱼效率，欢迎给个 ⭐，让我知道这世界上不只有我一个受害者。
+But if this tool actually improves your workflow, toss a ⭐ my way. It lets me know I'm not the only one who misses that sidebar.
 
-***
+---
 
 <p align="center">
   <sub>🐦 Made with spite toward Microsoft and love for the sidebar.</sub>
