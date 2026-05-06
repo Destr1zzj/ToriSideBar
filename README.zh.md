@@ -95,7 +95,7 @@ npm run tauri dev
 # 3. 构建发行版
 npm run build
 cd src-tauri && cargo build --release
-# 成品在 src-tauri/target/release/edge-sidebar.exe
+# 成品在 src-tauri/target/release/torisidebar.exe
 ```
 
 需要 Node.js + Rust 环境，Windows 10/11 自带 WebView2 Runtime，不用额外装。

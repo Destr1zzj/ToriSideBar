@@ -96,7 +96,7 @@ npm run tauri dev
 # 3. Build release binary
 npm run build
 cd src-tauri && cargo build --release
-# Output: src-tauri/target/release/edge-sidebar.exe
+# Output: src-tauri/target/release/torisidebar.exe
 ```
 
 Requires Node.js + Rust toolchain. Windows 10/11 ships with WebView2 Runtime, so no extra installs needed.
