@@ -7,7 +7,7 @@ use std::thread;
 use std::time::Duration;
 
 static BAR_EXPANDED: AtomicBool = AtomicBool::new(false);
-static TRIGGER_WIDTH: AtomicU32 = AtomicU32::new(12);
+static TRIGGER_WIDTH: AtomicU32 = AtomicU32::new(30);
 /// Whether the bar has been "unlocked" by entering the trigger zone.
 static TRIGGER_ACTIVE: AtomicBool = AtomicBool::new(false);
 /// Target visibility state set by the decision thread, read by the animation thread.
@@ -16,6 +16,8 @@ static BAR_TARGET_VISIBLE: AtomicBool = AtomicBool::new(false);
 static BAR_TARGET_X: AtomicI32 = AtomicI32::new(0);
 /// Current monitor's work_area right edge (set by decision thread, read by animation thread).
 static BAR_SCREEN_RIGHT: AtomicI32 = AtomicI32::new(0);
+/// Current monitor's work_area top edge (set by decision thread, read by animation thread).
+static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
 
 /// Ensure only one instance is running (Windows named mutex)
 fn ensure_single_instance() -> Option<winapi::shared::ntdef::HANDLE> {
@@ -53,27 +55,42 @@ fn get_mouse_pos() -> Option<(i32, i32)> {
     }
 }
 
-/// Get work area right edge of the monitor that currently contains the mouse.
-fn get_mouse_monitor_work_right() -> i32 {
+/// Get work area of the monitor that currently contains the mouse.
+/// Returns (left, top, right, bottom) in screen coordinates.
+fn get_mouse_monitor_work_area(app_handle: &tauri::AppHandle) -> (i32, i32, i32, i32) {
+    let mouse = get_mouse_pos().unwrap_or((0, 0));
+
+    // Try Tauri's available_monitors first (more reliable with DPI awareness)
+    if let Ok(monitors) = app_handle.available_monitors() {
+        for monitor in monitors {
+            let work = monitor.work_area();
+            let left = work.position.x;
+            let top = work.position.y;
+            let right = work.position.x + work.size.width as i32;
+            let bottom = work.position.y + work.size.height as i32;
+            if mouse.0 >= left && mouse.0 <= right && mouse.1 >= top && mouse.1 <= bottom {
+                return (left, top, right, bottom);
+            }
+        }
+    }
+
+    // Fallback to WinAPI MonitorFromPoint
     use winapi::um::winuser::{MonitorFromPoint, GetMonitorInfoW, MONITORINFO, MONITOR_DEFAULTTONEAREST};
     use winapi::shared::windef::POINT;
-
     unsafe {
-        let mut point = POINT { x: 0, y: 0 };
-        if winapi::um::winuser::GetCursorPos(&mut point) == 0 {
-            return 1920;
-        }
+        let point = POINT { x: mouse.0, y: mouse.1 };
         let hmonitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
-        if hmonitor.is_null() {
-            return 1920;
+        if !hmonitor.is_null() {
+            let mut info: MONITORINFO = std::mem::zeroed();
+            info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+            if GetMonitorInfoW(hmonitor, &mut info) != 0 {
+                return (info.rcWork.left, info.rcWork.top, info.rcWork.right, info.rcWork.bottom);
+            }
         }
-        let mut info: MONITORINFO = std::mem::zeroed();
-        info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
-        if GetMonitorInfoW(hmonitor, &mut info) == 0 {
-            return 1920;
-        }
-        info.rcWork.right
     }
+
+    // Ultimate fallback: assume single 1920x1080 at (0,0)
+    (0, 0, 1920, 1080)
 }
 
 /// Get work area (screen minus taskbar) via bar's monitor
@@ -221,6 +238,7 @@ async fn exit_app(app: tauri::AppHandle) {
 fn animate_bar(app_handle: tauri::AppHandle) {
     thread::spawn(move || {
         let mut current_x: i32 = 0;
+        let mut current_y: i32 = 0;
         let mut initialized = false;
 
         loop {
@@ -231,20 +249,19 @@ fn animate_bar(app_handle: tauri::AppHandle) {
                 None => continue,
             };
 
-            let bar_pos = match bar.outer_position() {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-
             // When settings panel is open, animation is paused.
             // We sync current_x to the actual position so no jump happens on close.
             if BAR_EXPANDED.load(Ordering::SeqCst) {
-                current_x = bar_pos.x;
+                if let Ok(pos) = bar.outer_position() {
+                    current_x = pos.x;
+                    current_y = pos.y;
+                }
                 initialized = true;
                 continue;
             }
 
             let screen_right = BAR_SCREEN_RIGHT.load(Ordering::SeqCst);
+            let screen_top = BAR_SCREEN_TOP.load(Ordering::SeqCst);
             if screen_right == 0 {
                 continue;
             }
@@ -266,13 +283,20 @@ fn animate_bar(app_handle: tauri::AppHandle) {
                     }
                 }
             };
+            let target_y = screen_top;
 
             if !initialized {
                 current_x = target_x;
+                current_y = target_y;
                 initialized = true;
-                let _ = bar.set_position(PhysicalPosition { x: current_x, y: bar_pos.y });
+                let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
+                if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
+                    let _ = bar.show();
+                }
                 continue;
             }
+
+            let mut moved = false;
 
             if current_x != target_x {
                 let diff = target_x - current_x;
@@ -292,16 +316,35 @@ fn animate_bar(app_handle: tauri::AppHandle) {
                         current_x = target_x;
                     }
                 }
+                moved = true;
+            }
+
+            if current_y != target_y {
+                // Y changes happen instantly (monitor switch vertical alignment)
+                current_y = target_y;
+                moved = true;
+            }
+
+            if moved {
+                // Position FIRST, then show — prevents flash at old location
+                let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
 
                 // Show window as soon as any part is on-screen
                 if current_x < screen_right {
                     let _ = bar.show();
                 }
 
-                let _ = bar.set_position(PhysicalPosition { x: current_x, y: bar_pos.y });
-
                 // Fully off-screen and target is hidden -> hide() to stop intercepting mouse
                 if current_x >= screen_right - 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
+                    let _ = bar.hide();
+                }
+            } else {
+                // Even if x/y haven't changed, ensure visibility matches target
+                let is_visible = bar.is_visible().unwrap_or(false);
+                if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && !is_visible {
+                    let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
+                    let _ = bar.show();
+                } else if !BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && is_visible && current_x >= screen_right - 1 {
                     let _ = bar.hide();
                 }
             }
@@ -347,8 +390,9 @@ fn start_auto_hide(app_handle: tauri::AppHandle) {
             };
 
             // Get the monitor where the mouse currently is
-            let screen_right = get_mouse_monitor_work_right();
-            BAR_SCREEN_RIGHT.store(screen_right, Ordering::SeqCst);
+            let (_work_left, work_top, work_right, _work_bottom) = get_mouse_monitor_work_area(&app_handle);
+            BAR_SCREEN_RIGHT.store(work_right, Ordering::SeqCst);
+            BAR_SCREEN_TOP.store(work_top, Ordering::SeqCst);
 
             let over_bar = mouse.0 >= bar_pos.x && mouse.0 <= bar_pos.x + bar_size.width as i32
                 && mouse.1 >= bar_pos.y && mouse.1 <= bar_pos.y + bar_size.height as i32;
@@ -372,7 +416,8 @@ fn start_auto_hide(app_handle: tauri::AppHandle) {
             }
 
             let trigger = TRIGGER_WIDTH.load(Ordering::SeqCst) as i32;
-            let near_edge = mouse.0 >= screen_right - trigger;
+            // Trigger zone is measured from the monitor's right edge
+            let near_edge = mouse.0 >= work_right - trigger;
 
             let trigger_active = TRIGGER_ACTIVE.load(Ordering::SeqCst);
             let should_show = if trigger_active {
