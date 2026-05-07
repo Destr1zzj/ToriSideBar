@@ -141,6 +141,7 @@ function App() {
 
   // Sorting mode
   const [isSorting, setIsSorting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [sortDraggingIndex, setSortDraggingIndex] = useState<number | null>(null);
   const [sortDragOverIndex, setSortDragOverIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -313,45 +314,74 @@ function App() {
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
 
-  // Sorting mode mouse handlers
-  const handleSortMouseDown = (index: number, e: React.MouseEvent) => {
-    if (!isSorting) return;
+  // Sorting mode handlers
+  const handleListMouseDown = (e: React.MouseEvent) => {
+    if (!isSorting || !listRef.current) return;
+    const target = e.target as HTMLElement;
+    const wrapper = target.closest(".app-item-wrapper") as HTMLElement | null;
+    if (!wrapper) return;
+    const index = Array.from(listRef.current.children).indexOf(wrapper);
+    if (index === -1) return;
     e.preventDefault();
     dragItemIndex.current = index;
     sortDragOverIndexRef.current = index;
     setSortDraggingIndex(index);
     setSortDragOverIndex(index);
+    setIsDragging(true);
   };
 
-  const handleSortMouseMove = (e: React.MouseEvent) => {
-    if (dragItemIndex.current === null || listRef.current === null) return;
-    const children = Array.from(listRef.current.children) as HTMLElement[];
-    for (let i = 0; i < children.length; i++) {
-      const rect = children[i].getBoundingClientRect();
-      if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-        if (i !== sortDragOverIndexRef.current) {
-          sortDragOverIndexRef.current = i;
-          setSortDragOverIndex(i);
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (dragItemIndex.current === null || listRef.current === null) return;
+      const children = Array.from(listRef.current.children) as HTMLElement[];
+      for (let i = 0; i < children.length; i++) {
+        const rect = children[i].getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          if (i !== sortDragOverIndexRef.current) {
+            sortDragOverIndexRef.current = i;
+            setSortDragOverIndex(i);
+          }
+          break;
         }
-        break;
       }
-    }
-  };
+    };
 
-  const handleSortMouseUp = () => {
-    if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
-      setApps((prev) => {
-        const newApps = [...prev];
-        const [moved] = newApps.splice(dragItemIndex.current!, 1);
-        newApps.splice(sortDragOverIndexRef.current!, 0, moved);
-        return newApps;
-      });
+    const handleMouseUp = () => {
+      if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
+        setApps((prev) => {
+          const newApps = [...prev];
+          const [moved] = newApps.splice(dragItemIndex.current!, 1);
+          newApps.splice(sortDragOverIndexRef.current!, 0, moved);
+          return newApps;
+        });
+      }
+      dragItemIndex.current = null;
+      sortDragOverIndexRef.current = null;
+      setSortDraggingIndex(null);
+      setSortDragOverIndex(null);
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (!isSorting) {
+      dragItemIndex.current = null;
+      sortDragOverIndexRef.current = null;
+      setSortDraggingIndex(null);
+      setSortDragOverIndex(null);
+      setIsDragging(false);
     }
-    dragItemIndex.current = null;
-    sortDragOverIndexRef.current = null;
-    setSortDraggingIndex(null);
-    setSortDragOverIndex(null);
-  };
+  }, [isSorting]);
 
   const toggleSortMode = useCallback(() => {
     setIsSorting((prev) => !prev);
@@ -370,15 +400,12 @@ function App() {
       <div
         className="app-list"
         ref={listRef}
-        onMouseMove={handleSortMouseMove}
-        onMouseUp={handleSortMouseUp}
-        onMouseLeave={handleSortMouseUp}
+        onMouseDown={handleListMouseDown}
       >
         {apps.map((app, index) => (
           <div
             key={app.id}
             className={`app-item-wrapper ${sortDraggingIndex === index ? "dragging" : ""} ${sortDragOverIndex === index && sortDraggingIndex !== index ? "drag-over" : ""}`}
-            onMouseDown={(e) => handleSortMouseDown(index, e)}
           >
             {isSorting && <span className="sort-handle">⋮⋮</span>}
             <button
