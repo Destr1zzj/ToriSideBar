@@ -32,3 +32,6 @@ Thumbs.db
 
 # Release builds
 release/
+
+# Project summary (auto-generated)
+PROJECT_SUMMARY.md

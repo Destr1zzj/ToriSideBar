@@ -166,17 +166,36 @@ async fn toggle_app_window(
     title: String,
     url: String,
 ) -> Result<bool, String> {
+    // 辅助：隐藏除指定标签外的所有可见 app 窗口
+    let hide_others = |exclude: &str| {
+        for (l, window) in app.webview_windows() {
+            if l.starts_with("app-") && l != exclude {
+                if let Ok(visible) = window.is_visible() {
+                    if visible {
+                        let _ = window.hide();
+                    }
+                }
+            }
+        }
+    };
+
     if let Some(existing) = app.get_webview_window(&label) {
         let is_visible = existing.is_visible().map_err(|e| e.to_string())?;
         if is_visible {
+            // 二次点击：关闭当前前台的展示页面（隐藏）
             existing.hide().map_err(|e| e.to_string())?;
             return Ok(false);
         } else {
+            // 从后台恢复：先隐藏其他前台应用，再显示自己
+            hide_others(&label);
             existing.show().map_err(|e| e.to_string())?;
             existing.set_focus().map_err(|e| e.to_string())?;
             return Ok(true);
         }
     }
+
+    // 新建窗口：先隐藏其他所有前台应用
+    hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;

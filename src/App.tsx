@@ -182,16 +182,19 @@ function App() {
 
   const handleAppClick = useCallback(async (app: AppItem) => {
     try {
-      await invoke("toggle_app_window", {
+      const opened = await invoke<boolean>("toggle_app_window", {
         label: app.label,
         title: app.title,
         url: app.url,
       });
       setActiveApps((prev) => {
-        if (prev.has(app.label)) return prev;
-        const next = new Set(prev);
-        next.add(app.label);
-        return next;
+        // 只在新开窗口时加入集合；隐藏时不移除，保持后台保活的视觉状态
+        if (opened && !prev.has(app.label)) {
+          const next = new Set(prev);
+          next.add(app.label);
+          return next;
+        }
+        return prev;
       });
     } catch (e) {
       console.error("Failed to toggle app window:", e);
