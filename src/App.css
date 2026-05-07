@@ -144,6 +144,7 @@ body {
   object-fit: contain;
   background: rgba(255, 255, 255, 0.05);
   padding: 2px;
+  -webkit-user-drag: none;
 }
 
 .app-close-btn {

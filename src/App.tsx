@@ -110,6 +110,7 @@ function FaviconImg({ src, domain, title, className = "app-icon-img" }: { src?: 
       alt={title}
       className={className}
       draggable={false}
+      onDragStart={(e) => e.preventDefault()}
       onError={() => {
         if (srcIndex < sources.length - 1) {
           setSrcIndex(srcIndex + 1);
@@ -141,7 +142,6 @@ function App() {
 
   // Sorting mode
   const [isSorting, setIsSorting] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [sortDraggingIndex, setSortDraggingIndex] = useState<number | null>(null);
   const [sortDragOverIndex, setSortDragOverIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -314,64 +314,65 @@ function App() {
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
 
-  // Sorting mode handlers
-  const handleListMouseDown = (e: React.MouseEvent) => {
-    if (!isSorting || !listRef.current) return;
-    const target = e.target as HTMLElement;
-    const wrapper = target.closest(".app-item-wrapper") as HTMLElement | null;
-    if (!wrapper) return;
-    const index = Array.from(listRef.current.children).indexOf(wrapper);
-    if (index === -1) return;
-    e.preventDefault();
-    dragItemIndex.current = index;
-    sortDragOverIndexRef.current = index;
-    setSortDraggingIndex(index);
-    setSortDragOverIndex(index);
-    setIsDragging(true);
-  };
-
+  // Sorting mode: use native event listeners to work around WebView2 event quirks
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isSorting || !listRef.current) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (dragItemIndex.current === null || listRef.current === null) return;
-      const children = Array.from(listRef.current.children) as HTMLElement[];
-      for (let i = 0; i < children.length; i++) {
-        const rect = children[i].getBoundingClientRect();
-        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          if (i !== sortDragOverIndexRef.current) {
-            sortDragOverIndexRef.current = i;
-            setSortDragOverIndex(i);
+    const list = listRef.current;
+
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const wrapper = target.closest(".app-item-wrapper") as HTMLElement | null;
+      if (!wrapper) return;
+      const index = Array.from(list.children).indexOf(wrapper);
+      if (index === -1) return;
+      e.preventDefault();
+      dragItemIndex.current = index;
+      sortDragOverIndexRef.current = index;
+      setSortDraggingIndex(index);
+      setSortDragOverIndex(index);
+
+      const onMove = (e: MouseEvent) => {
+        if (dragItemIndex.current === null) return;
+        const children = Array.from(list.children) as HTMLElement[];
+        for (let i = 0; i < children.length; i++) {
+          const rect = children[i].getBoundingClientRect();
+          if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+            if (i !== sortDragOverIndexRef.current) {
+              sortDragOverIndexRef.current = i;
+              setSortDragOverIndex(i);
+            }
+            break;
           }
-          break;
         }
-      }
+      };
+
+      const onUp = () => {
+        if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
+          setApps((prev) => {
+            const newApps = [...prev];
+            const [moved] = newApps.splice(dragItemIndex.current!, 1);
+            newApps.splice(sortDragOverIndexRef.current!, 0, moved);
+            return newApps;
+          });
+        }
+        dragItemIndex.current = null;
+        sortDragOverIndexRef.current = null;
+        setSortDraggingIndex(null);
+        setSortDragOverIndex(null);
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
     };
 
-    const handleMouseUp = () => {
-      if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
-        setApps((prev) => {
-          const newApps = [...prev];
-          const [moved] = newApps.splice(dragItemIndex.current!, 1);
-          newApps.splice(sortDragOverIndexRef.current!, 0, moved);
-          return newApps;
-        });
-      }
-      dragItemIndex.current = null;
-      sortDragOverIndexRef.current = null;
-      setSortDraggingIndex(null);
-      setSortDragOverIndex(null);
-      setIsDragging(false);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
+    list.addEventListener("mousedown", onMouseDown);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      list.removeEventListener("mousedown", onMouseDown);
     };
-  }, [isDragging]);
+  }, [isSorting]);
 
   useEffect(() => {
     if (!isSorting) {
@@ -379,7 +380,6 @@ function App() {
       sortDragOverIndexRef.current = null;
       setSortDraggingIndex(null);
       setSortDragOverIndex(null);
-      setIsDragging(false);
     }
   }, [isSorting]);
 
@@ -400,7 +400,6 @@ function App() {
       <div
         className="app-list"
         ref={listRef}
-        onMouseDown={handleListMouseDown}
       >
         {apps.map((app, index) => (
           <div
