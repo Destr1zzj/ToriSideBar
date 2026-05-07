@@ -73,6 +73,16 @@ body {
   justify-content: center;
   width: 60px;
   margin-left: -5px;
+  cursor: grab;
+}
+
+.app-item-wrapper.dragging {
+  opacity: 0.4;
+}
+
+.app-item-wrapper.drag-over {
+  background: rgba(14, 165, 233, 0.12);
+  border-radius: 10px;
 }
 
 .app-item {
@@ -441,6 +451,39 @@ body {
 
 .delete-btn:hover {
   background: rgba(239, 68, 68, 0.25);
+}
+
+.manage-item-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.move-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.move-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.move-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
 }
 
 /* Settings */

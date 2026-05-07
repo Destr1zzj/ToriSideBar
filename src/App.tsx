@@ -24,7 +24,7 @@ const STORAGE_KEY = "tori-sidebar-apps";
 const ACTIVE_KEY = "tori-sidebar-active";
 const TRIGGER_KEY = "tori-sidebar-trigger";
 
-// FIX #3: Random emoji pool
+// Random emoji pool
 const RANDOM_EMOJIS = [
   "🚀","⭐","🔥","💎","🌟","⚡","🎯","💡","🎨","🔮",
   "🎪","🌈","🍀","🎸","🎮","📱","💻","🔑","🎁","🏆",
@@ -95,11 +95,9 @@ function getFaviconSources(domain: string): string[] {
   ];
 }
 
-// FIX #2: Use saved src first, fallback to generated sources
 function FaviconImg({ src, domain, title, className = "app-icon-img" }: { src?: string; domain: string; title: string; className?: string }) {
   const [srcIndex, setSrcIndex] = useState(0);
   const allSources = getFaviconSources(domain);
-  // If a specific src was saved, prioritize it, then fall back to other sources
   const sources = src && !allSources.includes(src)
     ? [src, ...allSources]
     : src
@@ -121,7 +119,6 @@ function FaviconImg({ src, domain, title, className = "app-icon-img" }: { src?: 
   );
 }
 
-// FIX #2: Pass the saved icon URL to FaviconImg
 function AppIcon({ icon, title, domain }: { icon: string; title: string; domain?: string }) {
   if (icon.startsWith("http://") || icon.startsWith("https://")) {
     return <FaviconImg src={icon} domain={domain || getDomain(icon)} title={title} />;
@@ -141,6 +138,8 @@ function App() {
   const [useEmoji, setUseEmoji] = useState(false);
   const [selectedSource, setSelectedSource] = useState(0);
   const [triggerWidth, setTriggerWidth] = useState(loadTrigger());
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const currentDomain = newUrl.trim() ? getDomain(newUrl.trim()) : "";
   const faviconSources = currentDomain ? getFaviconSources(currentDomain) : [];
@@ -299,6 +298,17 @@ function App() {
     setApps((prev) => prev.filter((a) => a.id !== id));
   }, [apps, activeApps]);
 
+  const handleMoveApp = useCallback((index: number, direction: -1 | 1) => {
+    setApps((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const newApps = [...prev];
+      const [moved] = newApps.splice(index, 1);
+      newApps.splice(newIndex, 0, moved);
+      return newApps;
+    });
+  }, []);
+
   const handleResetApps = useCallback(() => {
     activeApps.forEach((label) => {
       invoke("close_app_window", { label }).catch(() => {});
@@ -307,6 +317,40 @@ function App() {
     setApps(PRESET_APPS);
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
+
+  // Drag & drop handlers
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) {
+      setDragOverIndex(null);
+      return;
+    }
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) {
+      setDragOverIndex(null);
+      return;
+    }
+    setApps((prev) => {
+      const newApps = [...prev];
+      const [moved] = newApps.splice(dragIndex, 1);
+      newApps.splice(index, 0, moved);
+      return newApps;
+    });
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <div className="sidebar">
@@ -317,8 +361,16 @@ function App() {
       </div>
 
       <div className="app-list">
-        {apps.map((app) => (
-          <div key={app.id} className="app-item-wrapper">
+        {apps.map((app, index) => (
+          <div
+            key={app.id}
+            className={`app-item-wrapper ${dragIndex === index ? "dragging" : ""} ${dragOverIndex === index ? "drag-over" : ""}`}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={() => handleDrop(index)}
+            onDragEnd={handleDragEnd}
+          >
             <button
               className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
               onClick={() => handleAppClick(app)}
@@ -356,7 +408,6 @@ function App() {
           <div className="modal add-modal" onClick={(e) => e.stopPropagation()}>
             <h3>添加应用</h3>
 
-            {/* FIX #2: Show all 4 favicon sources for selection */}
             <div className="favicon-selector">
               {faviconSources.map((src, i) => (
                 <button
@@ -382,7 +433,6 @@ function App() {
                 <span>😀</span>
               </button>
             </div>
-            {/* FIX #3: Show selected emoji when emoji mode is active */}
             {useEmoji && (
               <p className="emoji-label">
                 已选: {newIcon || getRandomEmoji()}
@@ -418,15 +468,33 @@ function App() {
           <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
             <h3>管理应用</h3>
             <div className="manage-list">
-              {apps.map((app) => (
+              {apps.map((app, index) => (
                 <div key={app.id} className="manage-item">
                   <span className="manage-item-icon">
                     <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
                     {app.title}
                   </span>
-                  <button className="delete-btn" onClick={() => handleRemoveApp(app.id)}>
-                    删除
-                  </button>
+                  <div className="manage-item-actions">
+                    <button
+                      className="move-btn"
+                      disabled={index === 0}
+                      onClick={() => handleMoveApp(index, -1)}
+                      title="上移"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      className="move-btn"
+                      disabled={index === apps.length - 1}
+                      onClick={() => handleMoveApp(index, 1)}
+                      title="下移"
+                    >
+                      ↓
+                    </button>
+                    <button className="delete-btn" onClick={() => handleRemoveApp(app.id)}>
+                      删除
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
