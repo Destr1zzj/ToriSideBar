@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
@@ -138,8 +138,14 @@ function App() {
   const [useEmoji, setUseEmoji] = useState(false);
   const [selectedSource, setSelectedSource] = useState(0);
   const [triggerWidth, setTriggerWidth] = useState(loadTrigger());
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Sorting mode
+  const [isSorting, setIsSorting] = useState(false);
+  const [sortDraggingIndex, setSortDraggingIndex] = useState<number | null>(null);
+  const [sortDragOverIndex, setSortDragOverIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dragItemIndex = useRef<number | null>(null);
+  const sortDragOverIndexRef = useRef<number | null>(null);
 
   const currentDomain = newUrl.trim() ? getDomain(newUrl.trim()) : "";
   const faviconSources = currentDomain ? getFaviconSources(currentDomain) : [];
@@ -163,7 +169,7 @@ function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeApps.size > 0) {
+      if (e.key === "Escape" && activeApps.size > 0 && !isSorting) {
         const last = Array.from(activeApps).pop();
         if (last) {
           invoke("close_app_window", { label: last }).catch(() => {});
@@ -177,7 +183,7 @@ function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeApps]);
+  }, [activeApps, isSorting]);
 
   const handleAppClick = useCallback(async (app: AppItem) => {
     try {
@@ -298,17 +304,6 @@ function App() {
     setApps((prev) => prev.filter((a) => a.id !== id));
   }, [apps, activeApps]);
 
-  const handleMoveApp = useCallback((index: number, direction: -1 | 1) => {
-    setApps((prev) => {
-      const newIndex = index + direction;
-      if (newIndex < 0 || newIndex >= prev.length) return prev;
-      const newApps = [...prev];
-      const [moved] = newApps.splice(index, 1);
-      newApps.splice(newIndex, 0, moved);
-      return newApps;
-    });
-  }, []);
-
   const handleResetApps = useCallback(() => {
     activeApps.forEach((label) => {
       invoke("close_app_window", { label }).catch(() => {});
@@ -318,69 +313,82 @@ function App() {
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
 
-  // Drag & drop handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.setData("text/plain", String(index));
-    e.dataTransfer.effectAllowed = "move";
-    setDragIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  // Sorting mode mouse handlers
+  const handleSortMouseDown = (index: number, e: React.MouseEvent) => {
+    if (!isSorting) return;
     e.preventDefault();
-    if (dragIndex === null || dragIndex === index) {
-      setDragOverIndex(null);
-      return;
-    }
-    setDragOverIndex(index);
+    dragItemIndex.current = index;
+    sortDragOverIndexRef.current = index;
+    setSortDraggingIndex(index);
+    setSortDragOverIndex(index);
   };
 
-  const handleDrop = (index: number) => {
-    if (dragIndex === null || dragIndex === index) {
-      setDragOverIndex(null);
-      return;
+  const handleSortMouseMove = (e: React.MouseEvent) => {
+    if (dragItemIndex.current === null || listRef.current === null) return;
+    const children = Array.from(listRef.current.children) as HTMLElement[];
+    for (let i = 0; i < children.length; i++) {
+      const rect = children[i].getBoundingClientRect();
+      if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        if (i !== sortDragOverIndexRef.current) {
+          sortDragOverIndexRef.current = i;
+          setSortDragOverIndex(i);
+        }
+        break;
+      }
     }
-    setApps((prev) => {
-      const newApps = [...prev];
-      const [moved] = newApps.splice(dragIndex, 1);
-      newApps.splice(index, 0, moved);
-      return newApps;
-    });
-    setDragIndex(null);
-    setDragOverIndex(null);
   };
 
-  const handleDragEnd = () => {
-    setDragIndex(null);
-    setDragOverIndex(null);
+  const handleSortMouseUp = () => {
+    if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
+      setApps((prev) => {
+        const newApps = [...prev];
+        const [moved] = newApps.splice(dragItemIndex.current!, 1);
+        newApps.splice(sortDragOverIndexRef.current!, 0, moved);
+        return newApps;
+      });
+    }
+    dragItemIndex.current = null;
+    sortDragOverIndexRef.current = null;
+    setSortDraggingIndex(null);
+    setSortDragOverIndex(null);
   };
+
+  const toggleSortMode = useCallback(() => {
+    setIsSorting((prev) => !prev);
+  }, []);
 
   return (
     <div className="sidebar">
-      <div className="top-actions">
-        <button className="action-btn top-close-btn" onClick={handleCloseAll} title="关闭全部窗口">
-          ✕
-        </button>
-      </div>
+      {!isSorting && (
+        <div className="top-actions">
+          <button className="action-btn top-close-btn" onClick={handleCloseAll} title="关闭全部窗口">
+            ✕
+          </button>
+        </div>
+      )}
 
-      <div className="app-list">
+      <div
+        className="app-list"
+        ref={listRef}
+        onMouseMove={handleSortMouseMove}
+        onMouseUp={handleSortMouseUp}
+        onMouseLeave={handleSortMouseUp}
+      >
         {apps.map((app, index) => (
           <div
             key={app.id}
-            className={`app-item-wrapper ${dragOverIndex === index ? "drag-over" : ""}`}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDrop={() => handleDrop(index)}
+            className={`app-item-wrapper ${sortDraggingIndex === index ? "dragging" : ""} ${sortDragOverIndex === index && sortDraggingIndex !== index ? "drag-over" : ""}`}
+            onMouseDown={(e) => handleSortMouseDown(index, e)}
           >
+            {isSorting && <span className="sort-handle">⋮⋮</span>}
             <button
-              className={`app-item ${activeApps.has(app.label) ? "active" : ""} ${dragIndex === index ? "dragging" : ""}`}
-              onClick={() => handleAppClick(app)}
+              className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+              onClick={() => !isSorting && handleAppClick(app)}
               title={app.title}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnd={handleDragEnd}
             >
               <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
             </button>
-            {activeApps.has(app.label) && (
+            {activeApps.has(app.label) && !isSorting && (
               <button
                 className="app-close-btn"
                 onClick={(e) => handleCloseApp(app, e)}
@@ -394,15 +402,26 @@ function App() {
       </div>
 
       <div className="bottom-actions">
-        <button className="action-btn" onClick={openAdd} title="添加应用">
-          ➕
-        </button>
-        <button className="action-btn" onClick={openManage} title="管理应用">
-          ⚙️
-        </button>
-        <button className="action-btn exit-btn" onClick={handleExitApp} title="退出应用">
-          🚪
-        </button>
+        {!isSorting ? (
+          <>
+            <button className="action-btn" onClick={openAdd} title="添加应用">
+              ➕
+            </button>
+            <button className="action-btn" onClick={openManage} title="管理应用">
+              ⚙️
+            </button>
+            <button className="action-btn" onClick={toggleSortMode} title="排序">
+              ☰
+            </button>
+            <button className="action-btn exit-btn" onClick={handleExitApp} title="退出应用">
+              🚪
+            </button>
+          </>
+        ) : (
+          <button className="action-btn sort-done-btn" onClick={toggleSortMode} title="完成排序">
+            ✓
+          </button>
+        )}
       </div>
 
       {showAdd && (
@@ -470,33 +489,15 @@ function App() {
           <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
             <h3>管理应用</h3>
             <div className="manage-list">
-              {apps.map((app, index) => (
+              {apps.map((app) => (
                 <div key={app.id} className="manage-item">
                   <span className="manage-item-icon">
                     <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
                     {app.title}
                   </span>
-                  <div className="manage-item-actions">
-                    <button
-                      className="move-btn"
-                      disabled={index === 0}
-                      onClick={() => handleMoveApp(index, -1)}
-                      title="上移"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="move-btn"
-                      disabled={index === apps.length - 1}
-                      onClick={() => handleMoveApp(index, 1)}
-                      title="下移"
-                    >
-                      ↓
-                    </button>
-                    <button className="delete-btn" onClick={() => handleRemoveApp(app.id)}>
-                      删除
-                    </button>
-                  </div>
+                  <button className="delete-btn" onClick={() => handleRemoveApp(app.id)}>
+                    删除
+                  </button>
                 </div>
               ))}
             </div>
