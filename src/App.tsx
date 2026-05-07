@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
@@ -131,7 +131,6 @@ function App() {
   const [apps, setApps] = useState<AppItem[]>(loadApps);
   const [activeApps, setActiveApps] = useState<Set<string>>(loadActive);
   const [showAdd, setShowAdd] = useState(false);
-  const [showManage, setShowManage] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
@@ -140,11 +139,8 @@ function App() {
   const [selectedSource, setSelectedSource] = useState(0);
   const [triggerWidth, setTriggerWidth] = useState(loadTrigger());
 
-  // Sorting mode
-  const [isSorting, setIsSorting] = useState(false);
-  const [sortDraggingIndex, setSortDraggingIndex] = useState<number | null>(null);
-  const [sortDragOverIndex, setSortDragOverIndex] = useState<number | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  // Manage mode
+  const [isManaging, setIsManaging] = useState(false);
 
   const currentDomain = newUrl.trim() ? getDomain(newUrl.trim()) : "";
   const faviconSources = currentDomain ? getFaviconSources(currentDomain) : [];
@@ -168,7 +164,7 @@ function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeApps.size > 0 && !isSorting) {
+      if (e.key === "Escape" && activeApps.size > 0 && !isManaging) {
         const last = Array.from(activeApps).pop();
         if (last) {
           invoke("close_app_window", { label: last }).catch(() => {});
@@ -182,7 +178,7 @@ function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeApps, isSorting]);
+  }, [activeApps, isManaging]);
 
   const handleAppClick = useCallback(async (app: AppItem) => {
     try {
@@ -252,18 +248,10 @@ function App() {
 
   const closeAdd = useCallback(() => {
     setShowAdd(false);
-    invoke("collapse_bar").catch(() => {});
-  }, []);
-
-  const openManage = useCallback(async () => {
-    await invoke("expand_bar").catch(() => {});
-    setShowManage(true);
-  }, []);
-
-  const closeManage = useCallback(() => {
-    setShowManage(false);
-    invoke("collapse_bar").catch(() => {});
-  }, []);
+    if (!isManaging) {
+      invoke("collapse_bar").catch(() => {});
+    }
+  }, [isManaging]);
 
   const handleAddApp = useCallback(() => {
     if (!newTitle.trim() || !newUrl.trim()) return;
@@ -303,6 +291,17 @@ function App() {
     setApps((prev) => prev.filter((a) => a.id !== id));
   }, [apps, activeApps]);
 
+  const handleMoveApp = useCallback((index: number, direction: -1 | 1) => {
+    setApps((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const newApps = [...prev];
+      const [moved] = newApps.splice(index, 1);
+      newApps.splice(newIndex, 0, moved);
+      return newApps;
+    });
+  }, []);
+
   const handleResetApps = useCallback(() => {
     activeApps.forEach((label) => {
       invoke("close_app_window", { label }).catch(() => {});
@@ -312,47 +311,20 @@ function App() {
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
 
-  // Sorting mode: use HTML5 Drag and Drop on the wrapper div
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.setData("text/plain", String(index));
-    e.dataTransfer.effectAllowed = "move";
-    setSortDraggingIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (index !== sortDragOverIndex) {
-      setSortDragOverIndex(index);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-    if (!isNaN(fromIndex) && fromIndex !== index) {
-      setApps((prev) => {
-        const newApps = [...prev];
-        const [moved] = newApps.splice(fromIndex, 1);
-        newApps.splice(index, 0, moved);
-        return newApps;
-      });
-    }
-    setSortDraggingIndex(null);
-    setSortDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    setSortDraggingIndex(null);
-    setSortDragOverIndex(null);
-  };
-
-  const toggleSortMode = useCallback(() => {
-    setIsSorting((prev) => !prev);
+  const toggleManageMode = useCallback(async () => {
+    setIsManaging((prev) => {
+      if (!prev) {
+        invoke("expand_bar").catch(() => {});
+      } else {
+        invoke("collapse_bar").catch(() => {});
+      }
+      return !prev;
+    });
   }, []);
 
   return (
     <div className="sidebar">
-      {!isSorting && (
+      {!isManaging && (
         <div className="top-actions">
           <button className="action-btn top-close-btn" onClick={handleCloseAll} title="关闭全部窗口">
             ✕
@@ -360,65 +332,106 @@ function App() {
         </div>
       )}
 
-      <div className="app-list" ref={listRef}>
+      <div className="app-list">
         {apps.map((app, index) => (
           <div
             key={app.id}
-            className={`app-item-wrapper ${sortDraggingIndex === index ? "dragging" : ""} ${sortDragOverIndex === index && sortDraggingIndex !== index ? "drag-over" : ""}`}
-            draggable={isSorting}
-            onDragStart={(e) => handleDragStart(e, index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDrop={(e) => handleDrop(e, index)}
-            onDragEnd={handleDragEnd}
+            className={`app-item-wrapper ${isManaging ? "manage-mode" : ""}`}
           >
-            {isSorting && <span className="sort-handle">⋮⋮</span>}
-            {isSorting ? (
-              <div
-                className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
-                title={app.title}
-              >
-                <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
-              </div>
+            {isManaging ? (
+              <>
+                <div className="manage-actions">
+                  <button
+                    className="manage-action-btn"
+                    disabled={index === 0}
+                    onClick={() => handleMoveApp(index, -1)}
+                    title="上移"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="manage-action-btn"
+                    disabled={index === apps.length - 1}
+                    onClick={() => handleMoveApp(index, 1)}
+                    title="下移"
+                  >
+                    ↓
+                  </button>
+                </div>
+                <div
+                  className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+                  title={app.title}
+                >
+                  <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
+                </div>
+                <button
+                  className="manage-action-btn delete"
+                  onClick={() => handleRemoveApp(app.id)}
+                  title="删除"
+                >
+                  🗑️
+                </button>
+              </>
             ) : (
-              <button
-                className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
-                onClick={() => handleAppClick(app)}
-                title={app.title}
-              >
-                <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
-              </button>
-            )}
-            {activeApps.has(app.label) && !isSorting && (
-              <button
-                className="app-close-btn"
-                onClick={(e) => handleCloseApp(app, e)}
-                title="关闭"
-              >
-                ×
-              </button>
+              <>
+                <button
+                  className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+                  onClick={() => handleAppClick(app)}
+                  title={app.title}
+                >
+                  <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
+                </button>
+                {activeApps.has(app.label) && (
+                  <button
+                    className="app-close-btn"
+                    onClick={(e) => handleCloseApp(app, e)}
+                    title="关闭"
+                  >
+                    ×
+                  </button>
+                )}
+              </>
             )}
           </div>
         ))}
       </div>
 
+      {isManaging && (
+        <div className="manage-settings">
+          <div className="setting-row">
+            <label>触发宽度</label>
+            <div className="slider-row">
+              <input
+                type="range"
+                min={1}
+                max={100}
+                value={triggerWidth}
+                onChange={(e) => setTriggerWidth(parseInt(e.target.value, 10))}
+              />
+              <span className="slider-value">{triggerWidth}px</span>
+            </div>
+          </div>
+          <button className="manage-reset-btn" onClick={handleResetApps}>
+            恢复默认
+          </button>
+        </div>
+      )}
+
       <div className="bottom-actions">
-        {!isSorting ? (
+        {!isManaging ? (
           <>
             <button className="action-btn" onClick={openAdd} title="添加应用">
               ➕
             </button>
-            <button className="action-btn" onClick={openManage} title="管理应用">
+            <button className="action-btn" onClick={toggleManageMode} title="管理">
               ⚙️
-            </button>
-            <button className="action-btn" onClick={toggleSortMode} title="排序">
-              ☰
             </button>
             <button className="action-btn exit-btn" onClick={handleExitApp} title="退出应用">
               🚪
             </button>
           </>
         ) : (
-          <button className="action-btn sort-done-btn" onClick={toggleSortMode} title="完成排序">
+          <button className="action-btn manage-done-btn" onClick={toggleManageMode} title="完成">
             ✓
           </button>
         )}
@@ -478,51 +491,6 @@ function App() {
               </button>
               <button className="modal-btn confirm" onClick={handleAddApp}>
                 添加
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showManage && (
-        <div className="modal-overlay" onClick={closeManage}>
-          <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>管理应用</h3>
-            <div className="manage-list">
-              {apps.map((app) => (
-                <div key={app.id} className="manage-item">
-                  <span className="manage-item-icon">
-                    <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
-                    {app.title}
-                  </span>
-                  <button className="delete-btn" onClick={() => handleRemoveApp(app.id)}>
-                    删除
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="settings-section">
-              <h4>设置</h4>
-              <div className="setting-row">
-                <label>触发边栏弹出的像素</label>
-                <div className="slider-row">
-                  <input
-                    type="range"
-                    min={1}
-                    max={100}
-                    value={triggerWidth}
-                    onChange={(e) => setTriggerWidth(parseInt(e.target.value, 10))}
-                  />
-                  <span className="slider-value">{triggerWidth}px</span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button className="modal-btn cancel" onClick={handleResetApps}>
-                恢复默认
-              </button>
-              <button className="modal-btn cancel" onClick={closeManage}>
-                关闭
               </button>
             </div>
           </div>
