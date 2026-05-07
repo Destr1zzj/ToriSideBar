@@ -145,8 +145,6 @@ function App() {
   const [sortDraggingIndex, setSortDraggingIndex] = useState<number | null>(null);
   const [sortDragOverIndex, setSortDragOverIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const dragItemIndex = useRef<number | null>(null);
-  const sortDragOverIndexRef = useRef<number | null>(null);
 
   const currentDomain = newUrl.trim() ? getDomain(newUrl.trim()) : "";
   const faviconSources = currentDomain ? getFaviconSources(currentDomain) : [];
@@ -314,74 +312,39 @@ function App() {
     localStorage.removeItem(STORAGE_KEY);
   }, [activeApps]);
 
-  // Sorting mode: use native event listeners to work around WebView2 event quirks
-  useEffect(() => {
-    if (!isSorting || !listRef.current) return;
+  // Sorting mode: use HTML5 Drag and Drop on the wrapper div
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", String(index));
+    e.dataTransfer.effectAllowed = "move";
+    setSortDraggingIndex(index);
+  };
 
-    const list = listRef.current;
-
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const wrapper = target.closest(".app-item-wrapper") as HTMLElement | null;
-      if (!wrapper) return;
-      const index = Array.from(list.children).indexOf(wrapper);
-      if (index === -1) return;
-      e.preventDefault();
-      dragItemIndex.current = index;
-      sortDragOverIndexRef.current = index;
-      setSortDraggingIndex(index);
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (index !== sortDragOverIndex) {
       setSortDragOverIndex(index);
-
-      const onMove = (e: MouseEvent) => {
-        if (dragItemIndex.current === null) return;
-        const children = Array.from(list.children) as HTMLElement[];
-        for (let i = 0; i < children.length; i++) {
-          const rect = children[i].getBoundingClientRect();
-          if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-            if (i !== sortDragOverIndexRef.current) {
-              sortDragOverIndexRef.current = i;
-              setSortDragOverIndex(i);
-            }
-            break;
-          }
-        }
-      };
-
-      const onUp = () => {
-        if (dragItemIndex.current !== null && sortDragOverIndexRef.current !== null && dragItemIndex.current !== sortDragOverIndexRef.current) {
-          setApps((prev) => {
-            const newApps = [...prev];
-            const [moved] = newApps.splice(dragItemIndex.current!, 1);
-            newApps.splice(sortDragOverIndexRef.current!, 0, moved);
-            return newApps;
-          });
-        }
-        dragItemIndex.current = null;
-        sortDragOverIndexRef.current = null;
-        setSortDraggingIndex(null);
-        setSortDragOverIndex(null);
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    };
-
-    list.addEventListener("mousedown", onMouseDown);
-    return () => {
-      list.removeEventListener("mousedown", onMouseDown);
-    };
-  }, [isSorting]);
-
-  useEffect(() => {
-    if (!isSorting) {
-      dragItemIndex.current = null;
-      sortDragOverIndexRef.current = null;
-      setSortDraggingIndex(null);
-      setSortDragOverIndex(null);
     }
-  }, [isSorting]);
+  };
+
+  const handleDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+    if (!isNaN(fromIndex) && fromIndex !== index) {
+      setApps((prev) => {
+        const newApps = [...prev];
+        const [moved] = newApps.splice(fromIndex, 1);
+        newApps.splice(index, 0, moved);
+        return newApps;
+      });
+    }
+    setSortDraggingIndex(null);
+    setSortDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setSortDraggingIndex(null);
+    setSortDragOverIndex(null);
+  };
 
   const toggleSortMode = useCallback(() => {
     setIsSorting((prev) => !prev);
@@ -397,23 +360,34 @@ function App() {
         </div>
       )}
 
-      <div
-        className="app-list"
-        ref={listRef}
-      >
+      <div className="app-list" ref={listRef}>
         {apps.map((app, index) => (
           <div
             key={app.id}
             className={`app-item-wrapper ${sortDraggingIndex === index ? "dragging" : ""} ${sortDragOverIndex === index && sortDraggingIndex !== index ? "drag-over" : ""}`}
+            draggable={isSorting}
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
+            onDragEnd={handleDragEnd}
           >
             {isSorting && <span className="sort-handle">⋮⋮</span>}
-            <button
-              className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
-              onClick={() => !isSorting && handleAppClick(app)}
-              title={app.title}
-            >
-              <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
-            </button>
+            {isSorting ? (
+              <div
+                className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+                title={app.title}
+              >
+                <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
+              </div>
+            ) : (
+              <button
+                className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+                onClick={() => handleAppClick(app)}
+                title={app.title}
+              >
+                <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
+              </button>
+            )}
             {activeApps.has(app.label) && !isSorting && (
               <button
                 className="app-close-btn"
