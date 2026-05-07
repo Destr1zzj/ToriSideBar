@@ -29,7 +29,7 @@ Our ingredient list, presented in the style of a bubble tea shop menu:
 | Ingredient | Brand | What It Does |
 |------------|-------|--------------|
 | 🖥️ Desktop Framework | **Tauri v2** (Rust) | Handles all the OS grunt work — edge detection, system tray, single-instance lock, smooth animations |
-| ⚛️ Frontend | **React 19 + TypeScript** | The pretty face — icon grid, settings panel, modals, all that UI jazz |
+| ⚛️ Frontend | **React 19 + TypeScript** | The pretty face — icon grid, inline manage mode, add-app modal, all that UI jazz |
 | 🔧 Build Tool | **Vite** | Faster than Webpack, and faster than my mood swings |
 | 🎨 Renderer | **Edge WebView2** | Yes, I'm using Microsoft's engine to build a replacement for Microsoft's product. The irony is not lost on me. |
 | 🦀 Low-level Logic | **Rust + WinAPI** | Multi-monitor detection, mouse trigger zones, slide animations — the kind of precision work that would leak memory in any other language |
@@ -63,7 +63,7 @@ Multi-monitor support is here, but if your setup looks like a mission control ce
 
 ### 🖱️ Trigger Zone
 
-Default trigger zone is **30 pixels** from the right edge of your screen. On a 4K display, 30px is basically a hairline, so feel free to crank it up in the settings panel. There's a slider. Drag it until it feels right.
+Default trigger zone is **12 pixels** from the right edge of your screen. On a 4K display, 12px is basically a hairline, so feel free to crank it up in manage mode. There's a slider. Drag it until it feels right.
 
 ### 🔒 Single Instance
 
