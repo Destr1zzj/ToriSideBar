@@ -319,7 +319,9 @@ function App() {
   }, [activeApps]);
 
   // Drag & drop handlers
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", String(index));
+    e.dataTransfer.effectAllowed = "move";
     setDragIndex(index);
   };
 
@@ -364,17 +366,17 @@ function App() {
         {apps.map((app, index) => (
           <div
             key={app.id}
-            className={`app-item-wrapper ${dragIndex === index ? "dragging" : ""} ${dragOverIndex === index ? "drag-over" : ""}`}
-            draggable
-            onDragStart={() => handleDragStart(index)}
+            className={`app-item-wrapper ${dragOverIndex === index ? "drag-over" : ""}`}
             onDragOver={(e) => handleDragOver(e, index)}
             onDrop={() => handleDrop(index)}
-            onDragEnd={handleDragEnd}
           >
             <button
-              className={`app-item ${activeApps.has(app.label) ? "active" : ""}`}
+              className={`app-item ${activeApps.has(app.label) ? "active" : ""} ${dragIndex === index ? "dragging" : ""}`}
               onClick={() => handleAppClick(app)}
               title={app.title}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnd={handleDragEnd}
             >
               <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
             </button>

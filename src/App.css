@@ -73,11 +73,6 @@ body {
   justify-content: center;
   width: 60px;
   margin-left: -5px;
-  cursor: grab;
-}
-
-.app-item-wrapper.dragging {
-  opacity: 0.4;
 }
 
 .app-item-wrapper.drag-over {
@@ -92,13 +87,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: grab;
   transition: all 0.15s ease;
   position: relative;
   border: none;
   background: transparent;
   outline: none;
   padding: 0;
+}
+
+.app-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
 }
 
 .app-item:hover {
