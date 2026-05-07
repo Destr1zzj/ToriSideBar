@@ -114,7 +114,7 @@ cd src-tauri && cargo build --release
 
 ## License
 
-MIT —— 随便用，随便改，改出 bug 了别@我就行。
+MIT + Commons Clause —— 随便用，随便改，改出 bug 了别@我，但**禁止拿它卖钱**。详见 [LICENSE](./LICENSE)。
 
 但如果这个工具真的帮你提升了摸鱼效率，欢迎给个 ⭐，让我知道这世界上不只有我一个受害者。
 

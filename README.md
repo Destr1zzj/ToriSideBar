@@ -105,7 +105,7 @@ Requires Node.js + Rust toolchain. Windows 10/11 ships with WebView2 Runtime, so
 
 ## License
 
-MIT — Use it, modify it, break it, just don't @ me if it breaks.
+MIT + Commons Clause — Use it, modify it, break it, just don't **sell** it. See [LICENSE](./LICENSE) for the full text.
 
 But if this tool actually improves your workflow, toss a ⭐ my way. It lets me know I'm not the only one who misses that sidebar.
 
