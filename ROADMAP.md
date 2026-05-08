@@ -60,6 +60,14 @@
 - 子窗口应继承侧边栏样式，并跟随侧边栏跨显示器移动。
 - 也可考虑在侧边栏内部实现滑出面板 UI。
 
+**Sub-feature: Back Navigation / 子功能：返回按钮**
+- All app windows (parent + child) are frameless, so a floating nav bar with **back** and **close** buttons will be injected via `initialization_script`.
+- Back button (`←`) appears when `history.length > 1` and triggers `window.history.back()`.
+- Close button (`×`) closes the current window.
+- 所有应用窗口（父窗口 + 子窗口）均无边框，因此通过 `initialization_script` 注入悬浮导航栏，包含**返回**和**关闭**按钮。
+- 返回按钮（`←`）在 `history.length > 1` 时显示，触发 `window.history.back()`。
+- 关闭按钮（`×`）关闭当前窗口。
+
 ---
 
 ### Gadgets Collection — Sticky Notes / 小工具合集 — 便签
