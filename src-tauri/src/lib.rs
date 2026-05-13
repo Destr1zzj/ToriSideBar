@@ -2,6 +2,7 @@ use tauri::{
     Manager, WebviewUrl, WebviewWindowBuilder,
     PhysicalPosition, PhysicalSize,
 };
+use tauri::webview::PageLoadEvent;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -92,6 +93,34 @@ fn get_mouse_monitor_work_area(app_handle: &tauri::AppHandle) -> (i32, i32, i32,
     // Ultimate fallback: assume single 1920x1080 at (0,0)
     (0, 0, 1920, 1080)
 }
+
+const TOOLBAR_JS: &str = r#"
+(function() {
+  if (document.getElementById('tori-toolbar')) return;
+
+  var css = document.createElement('style');
+  css.textContent = '#tori-toolbar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:8px;padding:6px 12px;border-radius:20px;background:rgba(30,30,34,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 12px rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);transition:opacity 0.3s ease;opacity:0.3;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}#tori-toolbar:hover{opacity:1}#tori-toolbar button{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;padding:0;line-height:1}#tori-toolbar button:hover{background:rgba(255,255,255,0.25);transform:scale(1.1)}';
+  document.head.appendChild(css);
+
+  var toolbar = document.createElement('div');
+  toolbar.id = 'tori-toolbar';
+  toolbar.innerHTML = '<button id="tori-back" title="返回">←</button><button id="tori-reload" title="刷新">↻</button>';
+
+  function mount() {
+    if (!document.body) { setTimeout(mount, 50); return; }
+    document.body.appendChild(toolbar);
+    document.getElementById('tori-reload').addEventListener('click', function(e) {
+      e.stopPropagation();
+      location.reload();
+    });
+    document.getElementById('tori-back').addEventListener('click', function(e) {
+      e.stopPropagation();
+      history.back();
+    });
+  }
+  mount();
+})();
+"#;
 
 /// Get work area (screen minus taskbar) via bar's monitor
 fn get_work_area(bar: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
@@ -186,10 +215,11 @@ async fn toggle_app_window(
             existing.hide().map_err(|e| e.to_string())?;
             return Ok(false);
         } else {
-            // 从后台恢复：先隐藏其他前台应用，再显示自己
+            // 从后台恢复：先隐藏其他前台应用，再显示自己，并重新注入工具栏
             hide_others(&label);
             existing.show().map_err(|e| e.to_string())?;
             existing.set_focus().map_err(|e| e.to_string())?;
+            let _ = existing.eval(TOOLBAR_JS);
             return Ok(true);
         }
     }
@@ -220,8 +250,15 @@ async fn toggle_app_window(
         .minimizable(false)
         .closable(true)
         .visible(true)
+        .on_page_load(|window, payload| {
+            if payload.event() == PageLoadEvent::Finished {
+                let _ = window.eval(TOOLBAR_JS);
+            }
+        })
         .build()
         .map_err(|e| e.to_string())?;
+
+    let _ = _window.eval(TOOLBAR_JS);
 
     Ok(true)
 }

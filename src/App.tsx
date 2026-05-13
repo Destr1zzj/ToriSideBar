@@ -41,7 +41,20 @@ function getRandomEmoji(): string {
 function loadApps(): AppItem[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item: any) => ({
+            id: String(item?.id ?? ""),
+            label: String(item?.label ?? ""),
+            title: String(item?.title ?? ""),
+            url: String(item?.url ?? ""),
+            icon: String(item?.icon ?? "🌐"),
+          }))
+          .filter((item: AppItem) => item.id && item.url);
+      }
+    }
   } catch { /* ignore */ }
   return PRESET_APPS;
 }
@@ -53,7 +66,12 @@ function saveApps(apps: AppItem[]) {
 function loadActive(): Set<string> {
   try {
     const stored = localStorage.getItem(ACTIVE_KEY);
-    if (stored) return new Set(JSON.parse(stored));
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.filter((s: any) => typeof s === "string"));
+      }
+    }
   } catch { /* ignore */ }
   return new Set();
 }
@@ -88,11 +106,26 @@ function getDomain(url: string): string {
 // Multiple favicon sources
 function getFaviconSources(domain: string): string[] {
   return [
-    `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+    `https://icon.horse/icon/${domain}`,
     `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-    `https://api.faviconkit.com/${domain}/64`,
     `https://${domain}/favicon.ico`,
   ];
+}
+
+function FaviconOptionImg({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <span style={{ fontSize: "14px", opacity: 0.4 }}>🌐</span>;
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function FaviconImg({ src, domain, title, className = "app-icon-img" }: { src?: string; domain: string; title: string; className?: string }) {
@@ -456,7 +489,7 @@ function App() {
                   }}
                   title={`源 ${i + 1}`}
                 >
-                  <img src={src} alt="" draggable={false} />
+                  <FaviconOptionImg src={src} />
                 </button>
               ))}
               <button
