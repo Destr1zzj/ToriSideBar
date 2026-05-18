@@ -1,6 +1,6 @@
 [package]
 name = "edge-sidebar"
-version = "0.1.6"
+version = "0.1.7"
 description = "Edge Sidebar Replacement"
 authors = ["you"]
 edition = "2021"
