@@ -2,6 +2,7 @@ use tauri::{
     Manager, WebviewUrl, WebviewWindowBuilder,
     PhysicalPosition, PhysicalSize,
 };
+use tauri::webview::PageLoadEvent;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
 use std::sync::{Mutex, LazyLock};
@@ -108,6 +109,9 @@ const INJECT_JS: &str = r#"(function() {
   function tauriInvoke(cmd, args) {
     try {
       const tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+      if (tauri?.invoke) {
+        return tauri.invoke(cmd, args);
+      }
       if (tauri?.core?.invoke) {
         return tauri.core.invoke(cmd, args);
       }
@@ -116,13 +120,28 @@ const INJECT_JS: &str = r#"(function() {
     return Promise.reject('Tauri not ready');
   }
 
+  function getRootDomain(hostname) {
+    const parts = hostname.split('.');
+    if (parts.length <= 2) return hostname;
+    return parts.slice(-2).join('.');
+  }
+
   function shouldOpenInternally(url) {
     try {
       const target = new URL(url, location.href).hostname;
       const current = location.hostname;
-      return target === current || target.endsWith('.' + current);
+      if (target === current) return true;
+      return getRootDomain(target) === getRootDomain(current);
     } catch {
       return false;
+    }
+  }
+
+  function resolveUrl(url) {
+    try {
+      return new URL(url, location.href).href;
+    } catch {
+      return url;
     }
   }
 
@@ -130,11 +149,17 @@ const INJECT_JS: &str = r#"(function() {
   const origOpen = window.open;
   window.open = function(url, target, features) {
     if (!url) return origOpen.apply(this, arguments);
-    if (shouldOpenInternally(url)) {
-      tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: url, title: target || document.title || '' });
+    const internal = shouldOpenInternally(url);
+    console.log('[Tori] window.open intercepted:', url, 'internal?', internal);
+    if (internal) {
+      tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(url), title: target || document.title || '' })
+        .then(r => console.log('[Tori] open_child_window ok:', r))
+        .catch(e => console.error('[Tori] open_child_window failed:', e));
       return { closed: false, close: function(){}, focus: function(){}, blur: function(){} };
     } else {
-      tauriInvoke('open_external_url', { url: url });
+      tauriInvoke('open_external_url', { url: resolveUrl(url) })
+        .then(() => console.log('[Tori] open_external_url ok'))
+        .catch(e => console.error('[Tori] open_external_url failed:', e));
       return null;
     }
   };
@@ -153,10 +178,16 @@ const INJECT_JS: &str = r#"(function() {
     if (target === '_blank' || target === '_new') {
       e.preventDefault();
       e.stopPropagation();
-      if (shouldOpenInternally(href)) {
-        tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: href, title: el.textContent || '' });
+      const internal = shouldOpenInternally(href);
+      console.log('[Tori] link click intercepted:', href, 'target:', target, 'internal?', internal);
+      if (internal) {
+        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(href), title: el.textContent || '' })
+          .then(r => console.log('[Tori] open_child_window ok:', r))
+          .catch(e => console.error('[Tori] open_child_window failed:', e));
       } else {
-        tauriInvoke('open_external_url', { url: href });
+        tauriInvoke('open_external_url', { url: resolveUrl(href) })
+          .then(() => console.log('[Tori] open_external_url ok'))
+          .catch(e => console.error('[Tori] open_external_url failed:', e));
       }
     }
   }, true);
@@ -170,9 +201,9 @@ const INJECT_JS: &str = r#"(function() {
     if ((target === '_blank' || target === '_new') && action) {
       e.preventDefault();
       if (shouldOpenInternally(action)) {
-        tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: action, title: '' });
+        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(action), title: '' });
       } else {
-        tauriInvoke('open_external_url', { url: action });
+        tauriInvoke('open_external_url', { url: resolveUrl(action) });
       }
     }
   }, true);
@@ -242,6 +273,20 @@ fn get_work_area(bar: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
     if let Ok(Some(monitor)) = bar.current_monitor() {
         let work = monitor.work_area();
         (work.position.x, work.position.y, work.size.width as i32, work.size.height as i32)
+    } else {
+        (0, 0, 1920, 1080)
+    }
+}
+
+/// Get work area of the monitor that contains the given window.
+fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
+    if let Ok(Some(monitor)) = window.current_monitor() {
+        let work = monitor.work_area();
+        let left = work.position.x;
+        let top = work.position.y;
+        let right = work.position.x + work.size.width as i32;
+        let bottom = work.position.y + work.size.height as i32;
+        (left, top, right, bottom)
     } else {
         (0, 0, 1920, 1080)
     }
@@ -353,7 +398,6 @@ async fn toggle_app_window(
     let app_y: i32 = bar_pos.y;
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
-    let init_script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
 
     let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
         .title(&title)
@@ -367,9 +411,18 @@ async fn toggle_app_window(
         .minimizable(false)
         .closable(true)
         .visible(true)
-        .initialization_script(&init_script)
+        .devtools(true)
+        .on_page_load(|window, payload| {
+            if payload.event() == PageLoadEvent::Finished {
+                let script = INJECT_JS.replace("__WINDOW_LABEL__", &window.label());
+                let _ = window.eval(&script);
+            }
+        })
         .build()
         .map_err(|e| e.to_string())?;
+
+    let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
+    let _ = _window.eval(&script);
 
     Ok(true)
 }
@@ -425,24 +478,32 @@ async fn open_child_window(
     url: String,
     title: Option<String>,
 ) -> Result<String, String> {
-    let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
+    println!("[Tori] open_child_window called: parent={}, url={}", parent_label, url);
+
+    let parsed_url: url::Url = url.parse().map_err(|e| {
+        eprintln!("[Tori] URL parse failed: {}", e);
+        "Invalid URL".to_string()
+    })?;
 
     let parent = app.get_webview_window(&parent_label).ok_or("Parent window not found")?;
     let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
     let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
+    println!("[Tori] parent pos=({},{}) size=({},{})", parent_pos.x, parent_pos.y, parent_size.width, parent_size.height);
 
     let child_width: u32 = 480;
     let child_height: u32 = parent_size.height;
     let child_x: i32 = parent_pos.x - child_width as i32;
     let child_y: i32 = parent_pos.y;
 
-    // Boundary protection
-    let (work_left, _work_top, _work_right, _work_bottom) = get_mouse_monitor_work_area(&app);
+    // Boundary protection: use parent's monitor, not mouse position
+    let (work_left, work_top, work_right, _work_bottom) = get_window_monitor_work_area(&parent);
+    println!("[Tori] parent monitor work_area: left={} top={} right={}", work_left, work_top, work_right);
     let (final_x, final_y) = if child_x < work_left {
         (parent_pos.x + 20, parent_pos.y + 20)
     } else {
         (child_x, child_y)
     };
+    println!("[Tori] child target pos=({},{}) raw_child_x={}", final_x, final_y, child_x);
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -450,8 +511,9 @@ async fn open_child_window(
         .as_millis();
     let child_label = format!("{}-tab-{}", parent_label, timestamp);
 
-    let init_script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
     let child_title = title.filter(|t| !t.is_empty()).unwrap_or_else(|| "New Tab".to_string());
+
+    println!("[Tori] creating child window: label={} pos=({},{}) size=({},{}) title={}", child_label, final_x, final_y, child_width, child_height, child_title);
 
     let _window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
         .title(&child_title)
@@ -465,9 +527,23 @@ async fn open_child_window(
         .minimizable(false)
         .closable(true)
         .visible(true)
-        .initialization_script(&init_script)
+        .devtools(true)
+        .on_page_load(|window, payload| {
+            if payload.event() == PageLoadEvent::Finished {
+                let script = INJECT_JS.replace("__WINDOW_LABEL__", &window.label());
+                let _ = window.eval(&script);
+            }
+        })
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            eprintln!("[Tori] failed to build child window: {}", e);
+            e.to_string()
+        })?;
+
+    println!("[Tori] child window created successfully: {}", child_label);
+
+    let script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
+    let _ = _window.eval(&script);
 
     let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
     map.entry(parent_label).or_default().push(child_label.clone());
