@@ -196,16 +196,23 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeApps.size > 0 && !isManaging) {
-        const last = Array.from(activeApps).pop();
-        if (last) {
-          invoke("close_app_window", { label: last }).catch(() => {});
-          setActiveApps((prev) => {
-            const next = new Set(prev);
-            next.delete(last);
-            return next;
-          });
+    const handler = async (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isManaging) {
+        // 先尝试关闭子窗口
+        const handled = await invoke<boolean>("handle_esc").catch(() => false);
+        if (handled) return;
+
+        // 没有子窗口，关闭最后活跃的父窗口
+        if (activeApps.size > 0) {
+          const last = Array.from(activeApps).pop();
+          if (last) {
+            invoke("close_app_window", { label: last }).catch(() => {});
+            setActiveApps((prev) => {
+              const next = new Set(prev);
+              next.delete(last);
+              return next;
+            });
+          }
         }
       }
     };

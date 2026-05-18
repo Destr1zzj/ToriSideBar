@@ -2,8 +2,9 @@ use tauri::{
     Manager, WebviewUrl, WebviewWindowBuilder,
     PhysicalPosition, PhysicalSize,
 };
-use tauri::webview::PageLoadEvent;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
+use std::sync::{Mutex, LazyLock};
 use std::thread;
 use std::time::Duration;
 
@@ -19,6 +20,10 @@ static BAR_TARGET_X: AtomicI32 = AtomicI32::new(0);
 static BAR_SCREEN_RIGHT: AtomicI32 = AtomicI32::new(0);
 /// Current monitor's work_area top edge (set by decision thread, read by animation thread).
 static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
+
+/// Parent -> child window label mapping.
+static CHILD_WINDOWS: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Ensure only one instance is running (Windows named mutex)
 fn ensure_single_instance() -> Option<winapi::shared::ntdef::HANDLE> {
@@ -94,33 +99,143 @@ fn get_mouse_monitor_work_area(app_handle: &tauri::AppHandle) -> (i32, i32, i32,
     (0, 0, 1920, 1080)
 }
 
-const TOOLBAR_JS: &str = r#"
-(function() {
-  if (document.getElementById('tori-toolbar')) return;
+const INJECT_JS: &str = r#"(function() {
+  if (window.__TORI_INJECTED__) return;
+  window.__TORI_INJECTED__ = true;
 
-  var css = document.createElement('style');
-  css.textContent = '#tori-toolbar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:8px;padding:6px 12px;border-radius:20px;background:rgba(30,30,34,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 12px rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);transition:opacity 0.3s ease;opacity:0.3;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}#tori-toolbar:hover{opacity:1}#tori-toolbar button{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;padding:0;line-height:1}#tori-toolbar button:hover{background:rgba(255,255,255,0.25);transform:scale(1.1)}';
-  document.head.appendChild(css);
+  const WINDOW_LABEL = "__WINDOW_LABEL__";
 
-  var toolbar = document.createElement('div');
-  toolbar.id = 'tori-toolbar';
-  toolbar.innerHTML = '<button id="tori-back" title="返回">←</button><button id="tori-reload" title="刷新">↻</button>';
-
-  function mount() {
-    if (!document.body) { setTimeout(mount, 50); return; }
-    document.body.appendChild(toolbar);
-    document.getElementById('tori-reload').addEventListener('click', function(e) {
-      e.stopPropagation();
-      location.reload();
-    });
-    document.getElementById('tori-back').addEventListener('click', function(e) {
-      e.stopPropagation();
-      history.back();
-    });
+  function tauriInvoke(cmd, args) {
+    try {
+      const tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
+      if (tauri?.core?.invoke) {
+        return tauri.core.invoke(cmd, args);
+      }
+    } catch(e) {}
+    console.warn('[Tori] invoke unavailable:', cmd);
+    return Promise.reject('Tauri not ready');
   }
-  mount();
-})();
-"#;
+
+  function shouldOpenInternally(url) {
+    try {
+      const target = new URL(url, location.href).hostname;
+      const current = location.hostname;
+      return target === current || target.endsWith('.' + current);
+    } catch {
+      return false;
+    }
+  }
+
+  // Intercept window.open
+  const origOpen = window.open;
+  window.open = function(url, target, features) {
+    if (!url) return origOpen.apply(this, arguments);
+    if (shouldOpenInternally(url)) {
+      tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: url, title: target || document.title || '' });
+      return { closed: false, close: function(){}, focus: function(){}, blur: function(){} };
+    } else {
+      tauriInvoke('open_external_url', { url: url });
+      return null;
+    }
+  };
+
+  // Intercept link clicks
+  document.addEventListener('click', function(e) {
+    let el = e.target;
+    while (el && el.tagName !== 'A') {
+      el = el.parentElement;
+      if (!el || el === document.body) return;
+    }
+    if (el.tagName !== 'A') return;
+    const href = el.getAttribute('href');
+    const target = el.getAttribute('target');
+    if (!href || href.startsWith('javascript:') || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+    if (target === '_blank' || target === '_new') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (shouldOpenInternally(href)) {
+        tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: href, title: el.textContent || '' });
+      } else {
+        tauriInvoke('open_external_url', { url: href });
+      }
+    }
+  }, true);
+
+  // Intercept form submit
+  document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (form.tagName !== 'FORM') return;
+    const target = form.getAttribute('target');
+    const action = form.getAttribute('action');
+    if ((target === '_blank' || target === '_new') && action) {
+      e.preventDefault();
+      if (shouldOpenInternally(action)) {
+        tauriInvoke('open_child_window', { parent_label: WINDOW_LABEL, url: action, title: '' });
+      } else {
+        tauriInvoke('open_external_url', { url: action });
+      }
+    }
+  }, true);
+
+  // Floating nav bar
+  function mountBar() {
+    if (document.getElementById('__tori_nav_bar__')) return;
+    if (!document.body) { setTimeout(mountBar, 50); return; }
+
+    const bar = document.createElement('div');
+    bar.id = '__tori_nav_bar__';
+    bar.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:8px;padding:6px 12px;border-radius:20px;background:rgba(30,30,34,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 12px rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);transition:opacity 0.3s ease;opacity:0.3;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+    bar.onmouseenter = function() { bar.style.opacity = '1'; };
+    bar.onmouseleave = function() { bar.style.opacity = '0.3'; };
+
+    const btnStyle = 'width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;padding:0;line-height:1';
+
+    const back = document.createElement('button');
+    back.innerHTML = '←';
+    back.title = '返回';
+    back.style.cssText = btnStyle;
+    back.onclick = function(e) { e.stopPropagation(); history.back(); };
+    bar.appendChild(back);
+
+    const reload = document.createElement('button');
+    reload.innerHTML = '↻';
+    reload.title = '刷新';
+    reload.style.cssText = btnStyle;
+    reload.onclick = function(e) { e.stopPropagation(); location.reload(); };
+    bar.appendChild(reload);
+
+    const close = document.createElement('button');
+    close.innerHTML = '×';
+    close.title = '关闭';
+    close.style.cssText = 'width:28px;height:28px;border-radius:50%;border:none;background:rgba(239,68,68,0.8);color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;padding:0;line-height:1';
+    close.onclick = function(e) { e.stopPropagation(); tauriInvoke('close_app_window', { label: WINDOW_LABEL }); };
+    bar.appendChild(close);
+
+    document.body.appendChild(bar);
+  }
+  mountBar();
+})();"#;
+
+/// Close all child windows of a parent and remove from map.
+fn close_child_windows_impl(app: &tauri::AppHandle, parent_label: &str) {
+    let to_close: Vec<String> = {
+        let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+        map.remove(parent_label).unwrap_or_default()
+    };
+    for child_label in to_close {
+        if let Some(window) = app.get_webview_window(&child_label) {
+            let _ = window.close();
+        }
+    }
+}
+
+/// Remove a child label from all parent mappings.
+fn remove_from_child_map(child_label: &str) {
+    let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+    for children in map.values_mut() {
+        children.retain(|l| l != child_label);
+    }
+}
 
 /// Get work area (screen minus taskbar) via bar's monitor
 fn get_work_area(bar: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
@@ -219,7 +334,8 @@ async fn toggle_app_window(
             hide_others(&label);
             existing.show().map_err(|e| e.to_string())?;
             existing.set_focus().map_err(|e| e.to_string())?;
-            let _ = existing.eval(TOOLBAR_JS);
+            let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
+            let _ = existing.eval(&script);
             return Ok(true);
         }
     }
@@ -231,12 +347,13 @@ async fn toggle_app_window(
     let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
     let bar_size = bar.outer_size().map_err(|e| e.to_string())?;
 
-    let app_width: u32 = 480;
+    let app_width: u32 = 520;
     let app_height: u32 = bar_size.height;
     let app_x: i32 = bar_pos.x - app_width as i32;
     let app_y: i32 = bar_pos.y;
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
+    let init_script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
 
     let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
         .title(&title)
@@ -250,15 +367,9 @@ async fn toggle_app_window(
         .minimizable(false)
         .closable(true)
         .visible(true)
-        .on_page_load(|window, payload| {
-            if payload.event() == PageLoadEvent::Finished {
-                let _ = window.eval(TOOLBAR_JS);
-            }
-        })
+        .initialization_script(&init_script)
         .build()
         .map_err(|e| e.to_string())?;
-
-    let _ = _window.eval(TOOLBAR_JS);
 
     Ok(true)
 }
@@ -266,6 +377,13 @@ async fn toggle_app_window(
 /// Close a specific app window by label
 #[tauri::command]
 async fn close_app_window(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    // 父窗口关闭时级联关闭子窗口；子窗口关闭时从映射表移除
+    let is_parent = label.starts_with("app-") && !label.contains("-tab-");
+    if is_parent {
+        close_child_windows_impl(&app, &label);
+    } else {
+        remove_from_child_map(&label);
+    }
     if let Some(window) = app.get_webview_window(&label) {
         window.close().map_err(|e| e.to_string())?;
     }
@@ -275,11 +393,140 @@ async fn close_app_window(app: tauri::AppHandle, label: String) -> Result<(), St
 /// Close all app windows
 #[tauri::command]
 async fn close_all_app_windows(app: tauri::AppHandle) -> Result<(), String> {
+    // 先清空所有子窗口映射并关闭子窗口
+    let _all_parents: Vec<String> = {
+        let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+        let keys: Vec<String> = map.keys().cloned().collect();
+        for parent in &keys {
+            if let Some(children) = map.remove(parent) {
+                for child in children {
+                    if let Some(window) = app.get_webview_window(&child) {
+                        let _ = window.close();
+                    }
+                }
+            }
+        }
+        keys
+    };
+    // 再关闭所有父窗口
     for (label, window) in app.webview_windows() {
-        if label.starts_with("app-") {
+        if label.starts_with("app-") && !label.contains("-tab-") {
             let _ = window.close();
         }
     }
+    Ok(())
+}
+
+/// Open a child window for the same-domain link.
+#[tauri::command]
+async fn open_child_window(
+    app: tauri::AppHandle,
+    parent_label: String,
+    url: String,
+    title: Option<String>,
+) -> Result<String, String> {
+    let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
+
+    let parent = app.get_webview_window(&parent_label).ok_or("Parent window not found")?;
+    let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
+    let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
+
+    let child_width: u32 = 480;
+    let child_height: u32 = parent_size.height;
+    let child_x: i32 = parent_pos.x - child_width as i32;
+    let child_y: i32 = parent_pos.y;
+
+    // Boundary protection
+    let (work_left, _work_top, _work_right, _work_bottom) = get_mouse_monitor_work_area(&app);
+    let (final_x, final_y) = if child_x < work_left {
+        (parent_pos.x + 20, parent_pos.y + 20)
+    } else {
+        (child_x, child_y)
+    };
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let child_label = format!("{}-tab-{}", parent_label, timestamp);
+
+    let init_script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
+    let child_title = title.filter(|t| !t.is_empty()).unwrap_or_else(|| "New Tab".to_string());
+
+    let _window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
+        .title(&child_title)
+        .inner_size(child_width as f64, child_height as f64)
+        .position(final_x as f64, final_y as f64)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(false)
+        .resizable(true)
+        .maximizable(false)
+        .minimizable(false)
+        .closable(true)
+        .visible(true)
+        .initialization_script(&init_script)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+    map.entry(parent_label).or_default().push(child_label.clone());
+
+    Ok(child_label)
+}
+
+/// Close all child windows of a given parent.
+#[tauri::command]
+async fn close_child_windows(app: tauri::AppHandle, parent_label: String) -> Result<(), String> {
+    close_child_windows_impl(&app, &parent_label);
+    Ok(())
+}
+
+/// Handle ESC key: close the top-most visible child window if any, otherwise signal frontend.
+#[tauri::command]
+async fn handle_esc(app: tauri::AppHandle) -> Result<bool, String> {
+    let mut target: Option<(String, String)> = None;
+
+    {
+        let map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+        for (parent_label, children) in map.iter() {
+            for child_label in children.iter().rev() {
+                if let Some(window) = app.get_webview_window(child_label) {
+                    if let Ok(visible) = window.is_visible() {
+                        if visible {
+                            target = Some((parent_label.clone(), child_label.clone()));
+                            break;
+                        }
+                    }
+                }
+            }
+            if target.is_some() {
+                break;
+            }
+        }
+    }
+
+    if let Some((parent, child)) = target {
+        if let Some(window) = app.get_webview_window(&child) {
+            let _ = window.close();
+        }
+        let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(children) = map.get_mut(&parent) {
+            children.retain(|l| l != &child);
+        }
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
+/// Open an external URL in the system browser.
+#[tauri::command]
+async fn open_external_url(url: String) -> Result<(), String> {
+    std::process::Command::new("cmd")
+        .args(&["/c", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -514,6 +761,10 @@ pub fn run() {
             toggle_app_window,
             close_app_window,
             close_all_app_windows,
+            open_child_window,
+            close_child_windows,
+            handle_esc,
+            open_external_url,
             exit_app,
         ])
         .setup(|app| {
