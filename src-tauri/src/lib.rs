@@ -120,26 +120,23 @@ const INJECT_JS: &str = r#"(function() {
     return Promise.reject('Tauri not ready');
   }
 
-  function getRootDomain(hostname) {
-    const parts = hostname.split('.');
-    if (parts.length <= 2) return hostname;
-    return parts.slice(-2).join('.');
-  }
-
   function shouldOpenInternally(url) {
     try {
-      const target = new URL(url, location.href).hostname;
+      const resolved = new URL(url, document.baseURI);
+      const target = resolved.hostname;
       const current = location.hostname;
-      if (target === current) return true;
-      return getRootDomain(target) === getRootDomain(current);
-    } catch {
+      const result = target === current;
+      console.log('[Tori] shouldOpenInternally:', { url, resolved: resolved.href, target, current, result });
+      return result;
+    } catch (e) {
+      console.log('[Tori] shouldOpenInternally failed:', url, e.message);
       return false;
     }
   }
 
   function resolveUrl(url) {
     try {
-      return new URL(url, location.href).href;
+      return new URL(url, document.baseURI).href;
     } catch {
       return url;
     }
@@ -234,6 +231,13 @@ const INJECT_JS: &str = r#"(function() {
     reload.style.cssText = btnStyle;
     reload.onclick = function(e) { e.stopPropagation(); location.reload(); };
     bar.appendChild(reload);
+
+    const openExternal = document.createElement('button');
+    openExternal.innerHTML = '↗';
+    openExternal.title = '用浏览器打开';
+    openExternal.style.cssText = btnStyle;
+    openExternal.onclick = function(e) { e.stopPropagation(); tauriInvoke('open_external_url', { url: location.href }); };
+    bar.appendChild(openExternal);
 
     const close = document.createElement('button');
     close.innerHTML = '×';
@@ -471,6 +475,7 @@ async fn close_all_app_windows(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 /// Open a child window for the same-domain link.
+/// Each parent is allowed at most one child window at a time.
 #[tauri::command]
 async fn open_child_window(
     app: tauri::AppHandle,
@@ -479,6 +484,9 @@ async fn open_child_window(
     title: Option<String>,
 ) -> Result<String, String> {
     println!("[Tori] open_child_window called: parent={}, url={}", parent_label, url);
+
+    // Close any existing child windows for this parent before opening a new one
+    close_child_windows_impl(&app, &parent_label);
 
     let parsed_url: url::Url = url.parse().map_err(|e| {
         eprintln!("[Tori] URL parse failed: {}", e);
