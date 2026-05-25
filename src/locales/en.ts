@@ -24,6 +24,7 @@ export const en = {
   language: "Language",
   english: "English",
   chinese: "中文",
+  dragToSort: "Drag to sort",
 };
 
 export type Translations = typeof en;

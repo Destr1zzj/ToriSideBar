@@ -1,0 +1,63 @@
+import type { AppItem } from "../types";
+
+const STORAGE_KEY = "tori-sidebar-apps";
+const ACTIVE_KEY = "tori-sidebar-active";
+const TRIGGER_KEY = "tori-sidebar-trigger";
+
+export function loadApps(): AppItem[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item: any) => ({
+            id: String(item?.id ?? ""),
+            label: String(item?.label ?? ""),
+            title: String(item?.title ?? ""),
+            url: String(item?.url ?? ""),
+            icon: String(item?.icon ?? "🌐"),
+          }))
+          .filter((item: AppItem) => item.id && item.url);
+      }
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+export function saveApps(apps: AppItem[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(apps));
+}
+
+export function loadActive(): Set<string> {
+  try {
+    const stored = localStorage.getItem(ACTIVE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.filter((s: any) => typeof s === "string"));
+      }
+    }
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+export function saveActive(active: Set<string>) {
+  localStorage.setItem(ACTIVE_KEY, JSON.stringify(Array.from(active)));
+}
+
+export function loadTrigger(): number {
+  try {
+    const stored = localStorage.getItem(TRIGGER_KEY);
+    if (stored) return Math.max(1, Math.min(100, parseInt(stored, 10) || 12));
+  } catch { /* ignore */ }
+  return 12;
+}
+
+export function saveTrigger(value: number) {
+  localStorage.setItem(TRIGGER_KEY, String(value));
+}
+
+export function clearAppsStorage() {
+  localStorage.removeItem(STORAGE_KEY);
+}

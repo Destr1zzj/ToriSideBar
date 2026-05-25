@@ -26,4 +26,5 @@ export const zh: Translations = {
   language: "语言",
   english: "English",
   chinese: "中文",
+  dragToSort: "拖动排序",
 };
