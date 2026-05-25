@@ -151,6 +151,34 @@ pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
 }
 
 // ------------------------------------------------------------------
+// Exit confirmation dialog (native, outside the sidebar)
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn confirm_exit(lang: String) -> bool {
+    use winapi::um::winuser::{MessageBoxW, MB_YESNO, MB_ICONQUESTION, IDYES};
+
+    let (title, msg) = if lang == "zh" {
+        ("确认退出", "确定要退出 ToriSidebar 吗？")
+    } else {
+        ("Confirm Exit", "Are you sure you want to quit ToriSidebar?")
+    };
+
+    let title_w: Vec<u16> = title.encode_utf16().chain(Some(0)).collect();
+    let msg_w: Vec<u16> = msg.encode_utf16().chain(Some(0)).collect();
+
+    unsafe {
+        let result = MessageBoxW(
+            std::ptr::null_mut(),
+            msg_w.as_ptr(),
+            title_w.as_ptr(),
+            MB_YESNO | MB_ICONQUESTION,
+        );
+        result == IDYES
+    }
+}
+
+// ------------------------------------------------------------------
 // Single-instance guard (Windows)
 // ------------------------------------------------------------------
 

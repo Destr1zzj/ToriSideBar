@@ -35,6 +35,7 @@ pub fn run() {
             commands::exit_app,
             commands::sync_language,
             commands::read_edge_user_apps,
+            commands::confirm_exit,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

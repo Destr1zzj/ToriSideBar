@@ -8,7 +8,7 @@ import { useDragSort } from "./hooks/useDragSort";
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
 import { AddAppModal } from "./components/AddAppModal";
-import { ExitConfirmModal } from "./components/ExitConfirmModal";
+
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
@@ -22,7 +22,7 @@ export default function App() {
 
   const [isManaging, setIsManaging] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   const [showImportEdge, setShowImportEdge] = useState(false);
 
   // ESC handler
@@ -225,7 +225,16 @@ export default function App() {
             <button className="action-btn" onClick={toggleManageMode} title={t("manage")}>
               ⚙️
             </button>
-            <button className="action-btn exit-btn" onClick={() => setShowExitConfirm(true)} title={t("exitApp")}>
+            <button
+              className="action-btn exit-btn"
+              onClick={async () => {
+                const confirmed = await invoke<boolean>("confirm_exit", { lang });
+                if (confirmed) {
+                  invoke("exit_app").catch(() => {});
+                }
+              }}
+              title={t("exitApp")}
+            >
               🚪
             </button>
           </>
@@ -243,13 +252,6 @@ export default function App() {
             addApp(app);
             closeAddModal();
           }}
-        />
-      )}
-
-      {showExitConfirm && (
-        <ExitConfirmModal
-          onCancel={() => setShowExitConfirm(false)}
-          onConfirm={() => invoke("exit_app").catch(() => {})}
         />
       )}
 
