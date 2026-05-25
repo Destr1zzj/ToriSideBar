@@ -79,10 +79,16 @@ export function useDragSort(
       const mouseY = lastMouseYRef.current;
       let scrolled = false;
 
-      if (mouseY < rect.top + SCROLL_MARGIN) {
+      if (
+        mouseY < rect.top + SCROLL_MARGIN &&
+        container.scrollTop > 0
+      ) {
         container.scrollTop -= SCROLL_SPEED;
         scrolled = true;
-      } else if (mouseY > rect.bottom - SCROLL_MARGIN) {
+      } else if (
+        mouseY > rect.bottom - SCROLL_MARGIN &&
+        container.scrollTop + container.clientHeight < container.scrollHeight
+      ) {
         container.scrollTop += SCROLL_SPEED;
         scrolled = true;
       }
