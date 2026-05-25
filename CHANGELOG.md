@@ -1,111 +1,119 @@
 # Changelog / 更新日志
 
-All notable changes to ToriSidebar are documented here.  
-此处记录了 ToriSidebar 的所有重要变更。
+All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
-## v0.2.0 — Refactor + Drag-to-Sort / 重构 + 拖动排序
+## v0.3.0 — 2026-05-25
 
 ### New / 新增
 
-- **Drag-to-Sort / 拖动排序**  
-  Reorder apps by dragging icons directly in normal mode — no need to enter manage panel.  
-  在常规模式下直接拖动图标排序，无需进入管理面板。
-
-- **Live Drag Preview / 实时拖动预览**  
-  The dragged item follows your cursor in real time with scale-up animation. Other items smoothly slide out of the way.  
-  被拖动的图标实时跟随光标并放大，其他图标平滑滑开让位。
-
-- **Auto-Scroll During Drag / 拖动时自动滚动**  
-  When the app list overflows the sidebar viewport, hovering near the top or bottom edge auto-scrolls the list.  
-  当应用列表超出边栏可视区域时，鼠标靠近顶部或底部边缘会自动滚动列表。
-
-- **Conditional Back Button / 条件返回按钮**  
-  The floating nav bar's back button is now hidden when `history.length <= 1`.  
-  悬浮导航栏的返回按钮在 `history.length <= 1` 时自动隐藏。
-
-- **Keep Sidebar Visible During Drag / 拖动时边栏保持可见**  
-  Auto-hide is paused while drag-sorting so the bar doesn't retract mid-drag.  
-  拖动排序期间自动隐藏暂停，边栏不会中途缩回。
-
-### Changed / 变更
-
-- **Frontend Refactor / 前端重构**  
-  Monolithic `App.tsx` (600+ lines) split into `src/{types,utils,hooks,components}/`.  
-  单体 `App.tsx`（600+ 行）拆分为 `src/{types,utils,hooks,components}/`。
-
-- **Backend Refactor / 后端重构**  
-  `lib.rs` (932 lines) split into 6 focused modules: `state`, `monitor`, `inject`, `animation`, `window`, `commands`.  
-  `lib.rs`（932 行）拆分为 6 个专注模块：`state`、`monitor`、`inject`、`animation`、`window`、`commands`。
-
-- **INJECT_JS Externalized / INJECT_JS 外置**  
-  The hardcoded injection script moved to `src-tauri/inject/navbar.js`, loaded via `include_str!`.  
-  硬编码的注入脚本移至 `src-tauri/inject/navbar.js`，通过 `include_str!` 加载。
+- 📥 **Edge Bar Import** — One-click import custom apps from Microsoft Edge sidebar. Supports Stable, Beta, Dev, and Canary versions, scanning all profiles. 一键从 Edge 侧边栏导入自定义应用，支持正式版 / Beta / Dev / Canary 及所有用户配置。
+- 🎭 **Emoji Icon Fallback** — When favicon fails to load, automatically falls back to a random emoji. No more broken image icons. Favicon 加载失败时自动回退到随机 emoji，告别破碎图标。
+- 🖥️ **Native Exit Confirm Dialog** — Exit confirmation uses Windows native MessageBox, displayed outside the sidebar window. 退出确认使用 Windows 系统对话框，不受边栏宽度限制。
+- ✓ **Select All / Deselect All** toggle in import modal. 导入弹窗支持全选 / 全不选切换。
 
 ### Fixed / 修复
 
-- Accurate drop-target detection during drag, unaffected by list scroll or item transforms.  
-  拖动期间准确的放置目标检测，不受列表滚动或图标变换影响。
+- 🔧 Fixed long icon URLs covering delete button in manage mode. 修复管理模式下长图标 URL 覆盖删除按钮的问题。
+- 🔧 Enhanced URL detection (`//` protocol-relative, `data:image/` base64) in AppIcon. 增强 AppIcon 的 URL 检测（支持协议相对 URL 和 base64 图片）。
 
 ---
 
-## v0.1.10 — Bug Fixes / Bug 修复
+## v0.2.0 — 2026-05-25
 
-- Window close state now syncs correctly with sidebar active indicator via `app-closed` Tauri event.  
-  窗口关闭状态通过 `app-closed` Tauri 事件正确同步到侧边栏活跃指示器。
+### New / 新增
 
-- Language switch now live-updates tooltips in already-opened app nav bars via `sync_language`.  
-  语言切换通过 `sync_language` 实时更新已打开应用的导航栏 tooltip。
+- 🖱️ **Drag-to-Sort** — Reorder apps by dragging icons directly in normal mode. 常规模式下直接拖动图标排序。
+- ✨ **Live Drag Animation** — Dragged item follows cursor with scale-up; others slide out of the way. 被拖动项放大跟随光标，其他项平滑让位。
+- 📜 **Auto-Scroll** — List auto-scrolls when dragging near edges. 靠近边缘时列表自动滚动。
+- 🔙 **Smart Back Button** — Nav bar back button hides when history has only one page. 历史记录只有一页时隐藏返回按钮。
+- ⏸️ **Pause Auto-Hide While Dragging** — Sidebar stays visible during drag-sort. 拖动排序期间边栏保持可见。
 
-- New windows now correctly inherit the current language setting.  
-  新窗口现在正确继承当前语言设置。
+### Changed / 变更
 
----
-
-## v0.1.9 — Bilingual Support / 双语支持
-
-- Full English / Chinese (Simplified) bilingual UI.  
-  完整的英语 / 简体中文双语界面。
-
-- Hand-written React Context i18n (zero dependencies). Default: English.  
-  手写 React Context 国际化（零依赖）。默认英语。
-
-- Language setting persists to `localStorage` and syncs across all windows.  
-  语言设置持久化到 `localStorage`，并同步到所有窗口。
+- 🏗️ Frontend refactored into modular directories (`components/`, `hooks/`, `types/`, `utils/`). 前端重构为模块化目录结构。
+- 🏗️ Backend `lib.rs` (932 lines) split into 6 focused Rust modules. 后端 `lib.rs` 拆分为 6 个 Rust 模块。
+- 🏗️ `INJECT_JS` extracted to standalone `src-tauri/inject/navbar.js`. 注入脚本提取为独立文件。
 
 ---
 
-## v0.1.8 — Child Window Support / 子窗口支持
+## v0.1.10 — 2026-05-25
 
-- Same-domain links open as child windows instead of external browser.  
-  同域链接以内置子窗口打开，而非外部浏览器。
+### Fixed / 修复
 
-- Each parent window allowed one child at a time. Boundary protection included.  
-  每个父窗口同一时间只允许一个子窗口，包含边界保护。
-
----
-
-## v0.1.7 — Multi-Monitor + Auto-Hide / 多显示器 + 自动隐藏
-
-- Smooth slide-in/out animation at ~60fps with 150ms decision loop.  
-  约 60fps 的平滑滑入/滑出动画，150ms 决策循环。
-
-- Multi-monitor detection: bar follows mouse across monitors.  
-  多显示器检测：边栏跟随鼠标跨显示器移动。
-
-- Trigger zone width configurable (1–200px).  
-  触发区宽度可配置（1–200px）。
+- 🐛 Closing an app window now correctly clears the sidebar active indicator. 关闭应用窗口后侧边栏活跃指示器正确清除。
+- 🐛 Nav bar tooltip language syncs immediately on language switch. 切换语言后导航栏 tooltip 实时更新。
+- 🐛 New app windows now inherit the current language setting. 新打开的窗口正确继承当前语言。
 
 ---
 
-## v0.1.0 — Initial Release / 初始发布
+## v0.1.9 — 2026-05-25
 
-- Basic sidebar with preset apps (Outlook, Gmail, Twitter, YouTube, Notion, WeChat, GitHub).  
-  基础侧边栏，带预设应用（Outlook、Gmail、Twitter、YouTube、Notion、微信网页版、GitHub）。
+### New / 新增
 
-- System tray icon with right-click quit menu.  
-  系统托盘图标，右键退出菜单。
+- 🌐 **Full English & Chinese bilingual support** — UI, settings, modals, tray menu, and nav bar. 完整的 UI、设置、弹窗、托盘菜单及导航栏中英双语支持。
+- 🌐 **Language switcher in Manage Mode** — Switch between English / 中文 instantly, persisted across restarts. 管理模式内切换语言，设置自动记忆。
+- 🌐 **English as default language** for first-time users. 默认使用英文。
 
-- Single-instance enforcement via Windows named mutex.  
-  通过 Windows 命名互斥锁强制单实例运行。
+---
+
+## v0.1.8 — 2026-05-18
+
+### Fixed / 修复
+
+- 🐛 Fixed child page 404 caused by `<base>` tag relative URL resolution. 修复 `<base>` 标签导致的相对路径解析错误。
+- 🐛 Child windows now replace the previous one instead of stacking. 子页面现在会替换旧的，不再堆积多开。
+
+### Improved / 改进
+
+- 🆕 Child window nav bar added "Open in Browser" button. 子窗口导航栏新增"用浏览器打开"按钮。
+- 📊 Enhanced backend diagnostic logs for child window debugging. 增强子窗口调试日志。
+
+---
+
+## v0.1.7 — 2026-05-18
+
+### Fixed / 修复
+
+- 🐛 Child window now opens correctly for same-domain `target="_blank"` links and `window.open()`. 同域 `target="_blank"` 链接和 `window.open()` 现在正确打开子窗口。
+- 🐛 Fixed Tauri v2 IPC parameter naming mismatch (`parent_label` → `parentLabel`). 修复 IPC 参数命名不匹配。
+- 🐛 Relative URLs resolved to absolute before passing to backend. 相对路径在传给后端前解析为绝对路径。
+- 🐛 Domain matching now uses root-domain comparison. 同域判断改为根域名匹配。
+- 🐛 Child window positioning uses parent window's monitor. 子窗口位置基于父窗口所在显示器。
+
+### Improved / 改进
+
+- 🛠️ Added DevTools support: press **F12** in any app window. 应用窗口支持 F12 打开 DevTools。
+
+---
+
+## v0.1.6-preview — 2026-05-13
+
+### New / 新增
+
+- 🧭 App window floating toolbar added **Back** and **Refresh** buttons. 应用窗口悬浮工具栏新增返回和刷新按钮。
+
+### Fixed / 修复
+
+- 🔒 localStorage security fix. localStorage 安全修复。
+
+---
+
+## v0.1.5 — 2026-05-07
+
+### New / 新增
+
+- 🚀 First stable-ish release with all core features: auto-hide bar, independent WebView windows per app, multi-monitor support, session persistence, single foreground window, auto favicon fetching, random emoji icons, system tray, single instance lock, adjustable trigger zone, inline manage mode. 首个稳定版本，包含所有核心功能。
+
+---
+
+## v0.1.4 — 2026-05-07
+
+- Internal build. 内部构建。
+
+---
+
+## v0.1.2 — 2026-05-06
+
+- 🥚 Initial release. A bar that lives on the right edge. That's it. 初始版本。一个常驻右边缘的边栏。仅此而已。
