@@ -52,6 +52,9 @@ export const en = {
   download: "Download",
   developer: "Developer",
   githubRepo: "GitHub Repo",
+  manageApps: "Manage Apps",
+  expand: "Expand",
+  collapse: "Collapse",
 };
 
 export type Translations = typeof en;

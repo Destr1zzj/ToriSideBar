@@ -31,6 +31,7 @@ export default function App() {
   } = useUpdateCheck();
 
   const [isManaging, setIsManaging] = useState(false);
+  const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
@@ -236,6 +237,7 @@ export default function App() {
         invoke("expand_bar").catch(() => {});
       } else {
         invoke("collapse_bar").catch(() => {});
+        setManageAppsExpanded(false);
       }
       return !prev;
     });
@@ -275,32 +277,47 @@ export default function App() {
         </div>
       )}
 
-      <div className="app-list" ref={containerRef}>
-        {apps.map((app, index) =>
-          isManaging ? (
-            <ManageAppItem
-              key={app.id}
-              app={app}
-              index={index}
-              isActive={activeApps.has(app.label)}
-              isDragging={draggingIndex === index}
-              style={getItemStyle(index)}
-              onRemove={handleRemoveApp}
-              onDragStart={handleDragStart}
-            />
-          ) : (
-            <AppListItem
-              key={app.id}
-              app={app}
-              isActive={activeApps.has(app.label)}
-              isDragging={draggingIndex === index}
-              style={getItemStyle(index)}
-              onMouseDown={() => handleDragStart(index)}
-              onClose={handleCloseApp}
-            />
-          )
-        )}
-      </div>
+      {isManaging && (
+        <div className="manage-apps-fold">
+          <button
+            className="manage-apps-toggle"
+            onClick={() => setManageAppsExpanded((p) => !p)}
+          >
+            <span className={`fold-arrow ${manageAppsExpanded ? "expanded" : ""}`}>▶</span>
+            {t("manageApps")}
+            <span className="fold-count">({apps.length})</span>
+          </button>
+        </div>
+      )}
+
+      {(!isManaging || manageAppsExpanded) && (
+        <div className="app-list" ref={containerRef}>
+          {apps.map((app, index) =>
+            isManaging ? (
+              <ManageAppItem
+                key={app.id}
+                app={app}
+                index={index}
+                isActive={activeApps.has(app.label)}
+                isDragging={draggingIndex === index}
+                style={getItemStyle(index)}
+                onRemove={handleRemoveApp}
+                onDragStart={handleDragStart}
+              />
+            ) : (
+              <AppListItem
+                key={app.id}
+                app={app}
+                isActive={activeApps.has(app.label)}
+                isDragging={draggingIndex === index}
+                style={getItemStyle(index)}
+                onMouseDown={() => handleDragStart(index)}
+                onClose={handleCloseApp}
+              />
+            )
+          )}
+        </div>
+      )}
 
       {isManaging && (
         <div className="manage-settings">

@@ -54,4 +54,7 @@ export const zh: Translations = {
   download: "去下载",
   developer: "开发者",
   githubRepo: "GitHub 仓库",
+  manageApps: "管理应用",
+  expand: "展开",
+  collapse: "收起",
 };
