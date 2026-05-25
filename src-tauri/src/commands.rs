@@ -33,9 +33,7 @@ pub async fn set_dragging(dragging: bool) {
 
 #[tauri::command]
 pub async fn open_external_url(url: String) -> Result<(), String> {
-    std::process::Command::new("cmd")
-        .args(&["/c", "start", "", &url])
-        .spawn()
+    tauri_plugin_opener::open_url(&url, None::<&str>)
         .map_err(|e| e.to_string())?;
     Ok(())
 }

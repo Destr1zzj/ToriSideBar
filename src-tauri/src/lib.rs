@@ -15,6 +15,24 @@ pub fn run() {
         winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
     }
 
+    // Panic hook: write to log file so users can report crashes
+    let log_dir = std::env::var("APPDATA")
+        .map(|p| std::path::PathBuf::from(p).join("ToriSidebar"))
+        .unwrap_or_else(|_| std::env::temp_dir().join("ToriSidebar"));
+    let _ = std::fs::create_dir_all(&log_dir);
+    let panic_log = log_dir.join("panic.log");
+    std::panic::set_hook(Box::new(move |info| {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let payload = info.payload().downcast_ref::<&str>().unwrap_or(&"unknown");
+        let location = info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_default();
+        let message = format!("[{}] PANIC: {} at {}\n", secs, payload, location);
+        eprintln!("{}", message);
+        let _ = std::fs::write(&panic_log, &message);
+    }));
+
     let _mutex = commands::ensure_single_instance();
     if _mutex.is_none() {
         eprintln!("ToriSidebar is already running.");
