@@ -4,6 +4,33 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## v0.4.0 — 2026-05-25
+
+### New / 新增
+
+- ⌨️ **Global Shortcut** — Customizable hotkey (default `Ctrl+Shift+Space`) to show/hide the sidebar. 可自定义全局快捷键（默认 `Ctrl+Shift+Space`）呼出/隐藏边栏。
+- 🔒 **Shortcut Lock Mode** — Press shortcut once to lock the bar visible (auto-hide suspended); press again or click outside to unlock. 快捷键锁定模式：一次按下锁定常显，再次按下或点击外部区域解锁。
+- ↔️ **Bar Position Toggle** — Switch between left and right screen edges, pinned to the outermost monitor. 边栏位置切换：左/右边缘，固定到最外侧显示器。
+- ➖ **Nav Bar Hide Button** — Floating nav bar in app windows now has a `−` hide button (same as toggling the app off). 应用窗口悬浮导航栏新增 `−` 隐藏按钮。
+- 🎹 **Shortcut UX Polish** — Click input to record, auto-save after recording, clear button, and weak conflict hint. 快捷键设置 UX：点击输入框录制、录制后自动保存、清除按钮、冲突弱提示。
+- 🔄 **Manual Update Check** — Displays local vs latest GitHub release version, one-click jump to download. 手动检查更新：显示本地与 GitHub 最新版本，一键跳转下载。
+- 📅 **Auto Check on Mondays** — Automatically checks for updates every Monday; shows red badge on manage button when update is available. 每周一自动检查更新；发现新版本时管理按钮显示红点提示。
+
+### Fixed / 修复
+
+- 🐛 Right-side bar content no longer overflows screen (WebView2 inset compensation). 右侧边栏内容不再超出屏幕。
+- 🐛 `activeApps` state no longer persists across restarts (was showing stale active indicators). activeApps 不再跨重启持久化，避免重启后显示错误的活跃状态。
+- 🐛 Cleared shortcut no longer restores to default after restart. 清除快捷键后重启不再恢复默认值。
+
+### Engineering / 工程化
+
+- 🔧 `open_external_url` migrated from hard-coded `cmd /c start` to `tauri-plugin-opener`. 外部链接打开方式迁移到 `tauri-plugin-opener`。
+- 🛡️ Frontend **Error Boundary** — Shows friendly crash screen with reload button. 前端添加错误边界，崩溃时显示友好界面。
+- 🛡️ Rust **panic hook** — Writes panic info to `%APPDATA%/ToriSidebar/panic.log`. Rust 添加 panic hook，写入日志文件。
+- 🚀 **GitHub Actions CI/CD** — `.github/workflows/release.yml` auto-builds on tag push. GitHub Actions 自动构建流水线。
+
+---
+
 ## v0.3.0 — 2026-05-25
 
 ### New / 新增

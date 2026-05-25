@@ -22,7 +22,7 @@
 | 优先级 | 功能 | 实现思路 | 预估工作量 |
 |--------|------|----------|-----------|
 | P0 | 自动更新 | `tauri-plugin-updater` + GitHub Release 作为更新源 | 中 |
-| P0 | 错误边界 + 崩溃恢复 | Rust 加 `std::panic::set_hook` 写日志到 `%APPDATA%/ToriSidebar/logs/`；前端 React 加 Error Boundary | 中 |
+| ~~P0~~ | ~~错误边界 + 崩溃恢复~~ | ~~Rust 加 `std::panic::set_hook` 写日志到 `%APPDATA%/ToriSidebar/logs/`；前端 React 加 Error Boundary~~ | ~~中~~ |
 | P1 | 日志文件 | 按天轮转，panic/错误/警告分级，方便用户反馈时直接发日志 | 中 |
 | P1 | Windows 代码签名 | 购买证书（~500元/年），签名后 exe 不再弹 SmartScreen | 一次性成本 |
 | P2 | 单元测试 | Rust 侧给 `commands.rs`、`window.rs` 加 `#[cfg(test)]`；前端给 `useApps`、`useDragSort` 加测试 | 大 |
@@ -61,6 +61,9 @@
 - [x] Emoji 图标回退（v0.3.0）
 - [x] 原生退出确认对话框（v0.3.0）
 - [x] 多版本 Edge 扫描（v0.3.0）
+- [x] 全局快捷键 + 锁定模式（v0.4.0）
+- [x] 边栏位置切换 左/右（v0.4.0）
+- [x] 悬浮导航栏隐藏按钮（v0.4.0）
 - [x] 多显示器支持
 - [x] 独立 WebView 会话
 - [x] 系统托盘
@@ -70,8 +73,8 @@
 
 ## 六、技术债务
 
-- [ ] `open_external_url` 仍在用硬编码 `cmd /c start`，应改用 `tauri-plugin-opener`
+- [x] ~~`open_external_url` 仍在用硬编码 `cmd /c start`，应改用 `tauri-plugin-opener`~~ → 已迁移
 - [x] ~~`tauri-plugin-global-shortcut` 已依赖但未使用~~ → 已实现
-- [ ] 前端没有 Error Boundary
-- [ ] Rust 侧没有 panic hook
-- [ ] 没有 CI/CD 流水线（每次手动构建 + 上传）
+- [x] ~~前端没有 Error Boundary~~ → 已实现
+- [x] ~~Rust 侧没有 panic hook~~ → 已实现
+- [x] ~~没有 CI/CD 流水线~~ → GitHub Actions 已配置

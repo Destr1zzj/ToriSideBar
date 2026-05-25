@@ -251,6 +251,78 @@ pub fn confirm_exit(lang: String) -> bool {
 }
 
 // ------------------------------------------------------------------
+// App version & update check
+// ------------------------------------------------------------------
+
+#[derive(serde::Serialize)]
+pub struct UpdateInfo {
+    pub current_version: String,
+    pub latest_version: String,
+    pub has_update: bool,
+    pub release_url: String,
+}
+
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+fn compare_version(a: &str, b: &str) -> std::cmp::Ordering {
+    let parse = |s: &str| {
+        s.trim_start_matches('v')
+            .split('.')
+            .map(|p| p.parse::<u32>().unwrap_or(0))
+            .collect::<Vec<u32>>()
+    };
+    let av = parse(a);
+    let bv = parse(b);
+    for i in 0..av.len().max(bv.len()) {
+        let ai = av.get(i).copied().unwrap_or(0);
+        let bi = bv.get(i).copied().unwrap_or(0);
+        match ai.cmp(&bi) {
+            std::cmp::Ordering::Equal => continue,
+            other => return other,
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
+#[tauri::command]
+pub async fn check_update() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let api_url = "https://api.github.com/repos/Destr1zzj/ToriSideBar/releases/latest";
+
+    let response = ureq::get(api_url)
+        .set("User-Agent", "ToriSidebar/").call()
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let json: serde_json::Value = response
+        .into_json()
+        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    let tag_name = json
+        .get("tag_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+
+    let release_url = json
+        .get("html_url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("https://github.com/Destr1zzj/ToriSideBar/releases")
+        .to_string();
+
+    let latest = tag_name.trim_start_matches('v').to_string();
+    let has_update = compare_version(&latest, &current) == std::cmp::Ordering::Greater;
+
+    Ok(UpdateInfo {
+        current_version: current,
+        latest_version: tag_name.to_string(),
+        has_update,
+        release_url,
+    })
+}
+
+// ------------------------------------------------------------------
 // Single-instance guard (Windows)
 // ------------------------------------------------------------------
 

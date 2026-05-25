@@ -7,6 +7,7 @@ import { useActiveApps } from "./hooks/useActiveApps";
 import { useTriggerWidth } from "./hooks/useTriggerWidth";
 import { useSettings } from "./hooks/useSettings";
 import { useDragSort } from "./hooks/useDragSort";
+import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
 import { AddAppModal } from "./components/AddAppModal";
@@ -21,6 +22,13 @@ export default function App() {
   const { activeApps, addActive, removeActive, clearActive } = useActiveApps();
   const { triggerWidth, setTriggerWidth } = useTriggerWidth();
   const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut } = useSettings();
+  const {
+    localVersion,
+    latestVersion,
+    hasUpdate,
+    checking,
+    checkUpdate,
+  } = useUpdateCheck();
 
   const [isManaging, setIsManaging] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -378,6 +386,60 @@ export default function App() {
           <button className="manage-import-btn" onClick={openImportEdgeModal}>
             {t("importEdgeApps")}
           </button>
+
+          <div className="about-section">
+            <div className="about-divider" />
+            <div className="about-row">
+              <span className="about-label">{t("currentVersion")}</span>
+              <span className="about-value">v{localVersion || "—"}</span>
+            </div>
+            <div className="about-row">
+              <span className="about-label">{t("latestVersion")}</span>
+              <span className={`about-value ${hasUpdate ? "update-highlight" : ""}`}>
+                {latestVersion ? (latestVersion.startsWith("v") ? latestVersion : `v${latestVersion}`) : "—"}
+              </span>
+            </div>
+            <div className="about-row">
+              <span className={`about-status ${hasUpdate ? "update-available" : ""}`}>
+                {checking ? t("checking") : hasUpdate ? t("updateAvailable") : t("upToDate")}
+              </span>
+            </div>
+            <div className="about-actions">
+              <button
+                className="about-btn"
+                onClick={() => checkUpdate(true)}
+                disabled={checking}
+              >
+                {t("checkUpdate")}
+              </button>
+              {hasUpdate && (
+                <button
+                  className="about-btn download"
+                  onClick={() => {
+                    invoke("open_external_url", {
+                      url: "https://github.com/Destr1zzj/ToriSideBar/releases/latest",
+                    }).catch(() => {});
+                  }}
+                >
+                  {t("download")}
+                </button>
+              )}
+            </div>
+            <div className="about-dev">
+              <span>ToriSidebar</span>
+              <span className="about-dev-sep">·</span>
+              <span
+                className="about-link"
+                onClick={() => {
+                  invoke("open_external_url", {
+                    url: "https://github.com/Destr1zzj/ToriSideBar",
+                  }).catch(() => {});
+                }}
+              >
+                {t("githubRepo")}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -387,8 +449,9 @@ export default function App() {
             <button className="action-btn" onClick={openAddModal} title={t("addApp")}>
               ➕
             </button>
-            <button className="action-btn" onClick={toggleManageMode} title={t("manage")}>
+            <button className="action-btn manage-btn-wrap" onClick={toggleManageMode} title={t("manage")}>
               ⚙️
+              {hasUpdate && <span className="update-badge" />}
             </button>
             <button
               className="action-btn exit-btn"

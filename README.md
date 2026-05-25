@@ -39,9 +39,11 @@ Too impatient to read? I respect that.
 | Feature | Description / 描述 |
 |---------|--------------------|
 | 📥 **Edge Bar Import** | One-click import your custom apps from Edge sidebar (all versions & profiles). 一键从 Edge 侧边栏导入自定义应用（支持所有版本及用户配置）。 |
+| ⌨️ **Global Shortcut** | Customizable hotkey to show/hide the bar, with a lock mode that keeps it visible. 可自定义全局快捷键呼出/隐藏边栏，支持锁定常显模式。 |
+| ↔️ **Left / Right Edge** | Pin the bar to the left or right edge of your screen setup. 边栏可固定到屏幕左边缘或右边缘。 |
 | 🖥️ **Multi-Monitor** | Bar teleports smoothly between monitors as you move the mouse. 鼠标跨显示器时边栏平滑跟随。 |
 | 🖱️ **Drag-to-Sort** | Drag icons to reorder apps directly — no manage panel needed. 直接拖动图标排序，无需打开管理面板。 |
-| 🧭 **Floating Nav Bar** | Every app window gets a mini nav bar: back, reload, open in browser, close. 每个应用窗口自带悬浮导航栏。 |
+| 🧭 **Floating Nav Bar** | Every app window gets a mini nav bar: back, reload, open in browser, hide, close. 每个应用窗口自带悬浮导航栏。 |
 | 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
 | 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
@@ -88,6 +90,8 @@ Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you 
 - **Click 🗑️** to delete an app.
 - **Adjust trigger width** with the slider.
 - **Switch language** between English and 简体中文.
+- **Switch bar position** — left or right edge of the screen.
+- **Set a global shortcut** — default is `Ctrl+Shift+Space`. Press once to lock the bar visible; press again or click outside to unlock.
 - **Reset to defaults** if you mess things up.
 - **Import from Edge** as described above.
 
@@ -96,6 +100,8 @@ Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you 
 - **点击 🗑️** 删除应用。
 - **调整触发宽度**滑块。
 - **切换语言**。
+- **切换边栏位置** — 屏幕左边缘或右边缘。
+- **设置全局快捷键** — 默认 `Ctrl+Shift+Space`。一次按下锁定边栏常显；再次按下或点击外部区域解锁。
 - **恢复默认**设置。
 - **从 Edge 导入**应用。
 
@@ -113,12 +119,14 @@ Every app opens in its own window with a floating nav bar at the top:
 - **←** Back (hides itself on the first page)
 - **↻** Reload
 - **🌐** Open in external browser
+- **−** Hide window (same as toggling the app off)
 - **✕** Close window
 
 每个应用在独立窗口中打开，顶部有悬浮导航栏：
 - **←** 返回（首页自动隐藏）
 - **↻** 刷新
 - **🌐** 用浏览器打开
+- **−** 隐藏窗口（效果等同于再次点击应用图标）
 - **✕** 关闭窗口
 
 ---

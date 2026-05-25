@@ -64,6 +64,8 @@ pub fn run() {
             commands::set_bar_position,
             commands::get_bar_position,
             commands::toggle_bar_visible,
+            commands::get_app_version,
+            commands::check_update,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

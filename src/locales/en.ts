@@ -43,6 +43,15 @@ export const en = {
   shortcutSetHint: "Shortcut saved. If it doesn't work, it may be used by another program",
   shortcutLockHint: "Press shortcut to lock the bar visible; press again or click outside to unlock",
   clear: "Clear",
+  currentVersion: "Current",
+  latestVersion: "Latest",
+  checkUpdate: "Check Update",
+  checking: "Checking...",
+  updateAvailable: "New version available",
+  upToDate: "Up to date",
+  download: "Download",
+  developer: "Developer",
+  githubRepo: "GitHub Repo",
 };
 
 export type Translations = typeof en;

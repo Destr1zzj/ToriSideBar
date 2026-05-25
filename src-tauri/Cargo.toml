@@ -1,6 +1,6 @@
 [package]
 name = "torisidebar"
-version = "0.3.0"
+version = "0.4.0"
 description = "Edge Sidebar Replacement"
 authors = ["you"]
 edition = "2021"
@@ -20,3 +20,4 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = "2"
 winapi = { version = "0.3", features = ["winuser", "synchapi", "handleapi", "errhandlingapi", "winerror", "ntdef", "wincon", "libloaderapi"] }
+ureq = { version = "2", features = ["json"] }

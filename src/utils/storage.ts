@@ -5,6 +5,8 @@ const ACTIVE_KEY = "tori-sidebar-active";
 const TRIGGER_KEY = "tori-sidebar-trigger";
 const POSITION_KEY = "tori-sidebar-position";
 const SHORTCUT_KEY = "tori-sidebar-shortcut";
+const LAST_CHECK_KEY = "tori-sidebar-last-check";
+const UPDATE_AVAILABLE_KEY = "tori-sidebar-update-available";
 
 export function loadApps(): AppItem[] {
   try {
@@ -88,4 +90,28 @@ export function saveGlobalShortcut(shortcut: string) {
 
 export function clearAppsStorage() {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+export function loadLastCheckTime(): number {
+  try {
+    const stored = localStorage.getItem(LAST_CHECK_KEY);
+    if (stored) return parseInt(stored, 10) || 0;
+  } catch { /* ignore */ }
+  return 0;
+}
+
+export function saveLastCheckTime(timestamp: number) {
+  localStorage.setItem(LAST_CHECK_KEY, String(timestamp));
+}
+
+export function loadUpdateAvailable(): boolean {
+  try {
+    const stored = localStorage.getItem(UPDATE_AVAILABLE_KEY);
+    return stored === "1";
+  } catch { /* ignore */ }
+  return false;
+}
+
+export function saveUpdateAvailable(available: boolean) {
+  localStorage.setItem(UPDATE_AVAILABLE_KEY, available ? "1" : "0");
 }

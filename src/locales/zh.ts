@@ -45,4 +45,13 @@ export const zh: Translations = {
   shortcutSetHint: "快捷键已保存，若不生效可能被其他程序占用",
   shortcutLockHint: "按下快捷键锁定边栏为常显模式；再次按下或点击外部区域解除锁定",
   clear: "清除",
+  currentVersion: "当前版本",
+  latestVersion: "最新版本",
+  checkUpdate: "检查更新",
+  checking: "检查中...",
+  updateAvailable: "发现新版本",
+  upToDate: "已是最新",
+  download: "去下载",
+  developer: "开发者",
+  githubRepo: "GitHub 仓库",
 };
