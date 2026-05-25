@@ -76,10 +76,6 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     // Clear explicit target so animation thread re-derives from visibility state
     BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
-    {
-        let fixed = crate::state::BAR_FIXED_LEFT.load(std::sync::atomic::Ordering::SeqCst);
-        crate::animation::log(&format!("[position_bar] is_left={} x={} y={} h={} w={} fixed_left={}", is_left, x, y, height, bar_width, fixed));
-    }
     Ok(())
 }
 
