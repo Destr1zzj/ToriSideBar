@@ -5,7 +5,7 @@ use tauri::{
 use tauri::webview::PageLoadEvent;
 
 use crate::inject::INJECT_JS;
-use crate::monitor::{get_leftmost_monitor_left, get_mouse_monitor_work_area, get_window_monitor_work_area};
+use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
 use crate::state::*;
 
 // ------------------------------------------------------------------
@@ -53,15 +53,18 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
         // Use the monitor where the mouse is for vertical sizing,
-        // but pin x to the leftmost edge.
+        // but pin x to the leftmost physical edge.
         let x = leftmost;
         let y = work_top;
         let height = work_bottom - work_top;
         (x, y, height)
     } else {
-        let (work_left, work_top, work_right, work_bottom) =
+        let rightmost = get_rightmost_monitor_right(&app);
+        crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        let x = work_right - bar_width;
+        // Pin x to the rightmost physical edge; y/height follow mouse monitor.
+        let x = rightmost - bar_width;
         let y = work_top;
         let height = work_bottom - work_top;
         (x, y, height)
@@ -93,9 +96,11 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
             get_mouse_monitor_work_area(&app);
         (leftmost, work_top, work_bottom - work_top)
     } else {
-        let (work_left, work_top, work_right, work_bottom) =
+        let rightmost = get_rightmost_monitor_right(&app);
+        crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (work_right - expanded, work_top, work_bottom - work_top)
+        (rightmost - expanded, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })
@@ -124,9 +129,11 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
             get_mouse_monitor_work_area(&app);
         (leftmost, work_top, work_bottom - work_top)
     } else {
-        let (work_left, work_top, work_right, work_bottom) =
+        let rightmost = get_rightmost_monitor_right(&app);
+        crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (work_right - narrow, work_top, work_bottom - work_top)
+        (rightmost - narrow, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })

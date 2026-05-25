@@ -32,6 +32,9 @@ pub static BAR_POSITION: AtomicU8 = AtomicU8::new(1);
 /// Leftmost monitor edge across all displays (for left-docked bar).
 pub static BAR_FIXED_LEFT: AtomicI32 = AtomicI32::new(0);
 
+/// Rightmost monitor edge across all displays (for right-docked bar).
+pub static BAR_FIXED_RIGHT: AtomicI32 = AtomicI32::new(0);
+
 /// When true, the auto-hide thread has published at least one valid
 /// monitor info frame. Prevents the animation thread from running
 /// before the first monitor scan (and avoids the false "screen_right==0"

@@ -41,7 +41,11 @@ pub fn animate_bar(app_handle: AppHandle) {
             } else {
                 BAR_SCREEN_LEFT.load(Ordering::SeqCst)
             };
-            let screen_right = BAR_SCREEN_RIGHT.load(Ordering::SeqCst);
+            let screen_right = if is_left {
+                BAR_SCREEN_RIGHT.load(Ordering::SeqCst)
+            } else {
+                BAR_FIXED_RIGHT.load(Ordering::SeqCst)
+            };
             let screen_top = BAR_SCREEN_TOP.load(Ordering::SeqCst);
             if !crate::state::MONITOR_INFO_READY.load(Ordering::SeqCst) {
                 continue;
@@ -233,7 +237,8 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 let fixed_left = BAR_FIXED_LEFT.load(Ordering::SeqCst);
                 mouse.0 <= fixed_left + trigger
             } else {
-                mouse.0 >= work_right - trigger
+                let fixed_right = BAR_FIXED_RIGHT.load(Ordering::SeqCst);
+                mouse.0 >= fixed_right - trigger
             };
 
             let trigger_active = TRIGGER_ACTIVE.load(Ordering::SeqCst);

@@ -86,19 +86,34 @@ pub fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32,
     }
 }
 
-/// Find the leftmost edge across all available monitors.
-/// This is used when the bar is docked to the left, so it stays
-/// at the true left edge of the desktop regardless of which
-/// monitor the mouse is currently on.
+/// Find the leftmost **physical** edge across all available monitors.
+/// Uses monitor.position() (not work_area) so the bar truly touches
+/// the screen bezel regardless of taskbar placement.
 pub fn get_leftmost_monitor_left(app_handle: &tauri::AppHandle) -> i32 {
     let mut min_left: i32 = 0;
     if let Ok(monitors) = app_handle.available_monitors() {
         for monitor in monitors {
-            let left = monitor.work_area().position.x;
+            let left = monitor.position().x;
             if left < min_left {
                 min_left = left;
             }
         }
     }
     min_left
+}
+
+/// Find the rightmost **physical** edge across all available monitors.
+/// Uses monitor.position() + monitor.size() (not work_area) so the bar
+/// truly touches the screen bezel regardless of taskbar placement.
+pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
+    let mut max_right: i32 = 0;
+    if let Ok(monitors) = app_handle.available_monitors() {
+        for monitor in monitors {
+            let right = monitor.position().x + monitor.size().width as i32;
+            if right > max_right {
+                max_right = right;
+            }
+        }
+    }
+    max_right
 }
