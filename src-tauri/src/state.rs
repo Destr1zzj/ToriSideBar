@@ -32,6 +32,12 @@ pub static BAR_POSITION: AtomicU8 = AtomicU8::new(1);
 /// Leftmost monitor edge across all displays (for left-docked bar).
 pub static BAR_FIXED_LEFT: AtomicI32 = AtomicI32::new(0);
 
+/// When true, the auto-hide thread has published at least one valid
+/// monitor info frame. Prevents the animation thread from running
+/// before the first monitor scan (and avoids the false "screen_right==0"
+/// stall when the mouse is on the leftmost monitor whose right edge is 0).
+pub static MONITOR_INFO_READY: AtomicBool = AtomicBool::new(false);
+
 /// When true, the auto-hide thread is paused so the bar stays visible
 /// during drag-to-sort operations.
 pub static DRAGGING: AtomicBool = AtomicBool::new(false);
