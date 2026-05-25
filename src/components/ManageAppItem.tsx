@@ -9,6 +9,7 @@ interface ManageAppItemProps {
   isActive: boolean;
   isDragging: boolean;
   isDragOver: boolean;
+  mouseOffset: number;
   onRemove: (id: string) => void;
   onDragStart: (index: number) => void;
 }
@@ -19,6 +20,7 @@ export function ManageAppItem({
   isActive,
   isDragging,
   isDragOver,
+  mouseOffset,
   onRemove,
   onDragStart,
 }: ManageAppItemProps) {
@@ -34,6 +36,14 @@ export function ManageAppItem({
       className={`app-item-wrapper manage-mode ${
         isDragging ? "dragging" : ""
       } ${isDragOver ? "drag-over" : ""}`}
+      style={
+        isDragging
+          ? {
+              transform: `translateY(${mouseOffset}px)`,
+              zIndex: 10,
+            }
+          : undefined
+      }
       data-id={app.id}
     >
       <div

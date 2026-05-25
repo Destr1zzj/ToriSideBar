@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 interface DragSortState {
   draggingIndex: number | null;
   dragOverIndex: number | null;
+  mouseOffset: number;
 }
 
 const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
@@ -10,7 +11,8 @@ const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
 /**
  * Custom drag-sort hook using mouse events.
  * Distinguishes between a "click" (tiny movement) and a "drag".
- * When a click is detected, onClick(index) is called instead of reordering.
+ * Returns mouseOffset so the dragged item can follow the cursor
+ * via transform: translateY for a live preview animation.
  */
 export function useDragSort(
   itemCount: number,
@@ -20,6 +22,7 @@ export function useDragSort(
   const [state, setState] = useState<DragSortState>({
     draggingIndex: null,
     dragOverIndex: null,
+    mouseOffset: 0,
   });
 
   const stateRef = useRef(state);
@@ -35,7 +38,7 @@ export function useDragSort(
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
     startPosRef.current = null;
-    setState({ draggingIndex: index, dragOverIndex: null });
+    setState({ draggingIndex: index, dragOverIndex: null, mouseOffset: 0 });
   }, []);
 
   useEffect(() => {
@@ -51,6 +54,10 @@ export function useDragSort(
         if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
           hasMovedRef.current = true;
         }
+        setState((prev) => ({
+          ...prev,
+          mouseOffset: e.clientY - startPosRef.current!.y,
+        }));
       } else {
         startPosRef.current = { x: e.clientX, y: e.clientY };
       }
@@ -62,7 +69,10 @@ export function useDragSort(
 
       let targetIndex: number | null = null;
 
+      // Find which item the mouse is currently over.
+      // Skip the dragged item because its visual position is offset by transform.
       for (let i = 0; i < children.length; i++) {
+        if (i === stateRef.current.draggingIndex) continue;
         const rect = children[i].getBoundingClientRect();
         const midY = rect.top + rect.height / 2;
         if (e.clientY < midY) {
@@ -71,6 +81,7 @@ export function useDragSort(
         }
       }
 
+      // If below all mid-points, target is the last item
       if (targetIndex === null) {
         targetIndex = children.length - 1;
       }
@@ -96,7 +107,7 @@ export function useDragSort(
         onReorder(draggingIndex, dragOverIndex);
       }
 
-      setState({ draggingIndex: null, dragOverIndex: null });
+      setState({ draggingIndex: null, dragOverIndex: null, mouseOffset: 0 });
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
@@ -116,6 +127,7 @@ export function useDragSort(
     containerRef,
     draggingIndex: state.draggingIndex,
     dragOverIndex: state.dragOverIndex,
+    mouseOffset: state.mouseOffset,
     handleDragStart,
   };
 }
