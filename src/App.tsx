@@ -287,7 +287,14 @@ export default function App() {
   }, [isManaging]);
 
   return (
-    <div className={`sidebar sidebar-${barPosition}`}>
+    <div
+      className={`sidebar sidebar-${barPosition} ${showFirstRun && !isManaging ? "first-run-mode" : ""}`}
+      onMouseEnter={() => {
+        if (showFirstRun && !isManaging) {
+          setShowFirstRun(false);
+        }
+      }}
+    >
       {showFirstRun && !isManaging && (
         <div className="first-run-guide">
           <div className="first-run-glow" />

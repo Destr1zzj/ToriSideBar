@@ -910,52 +910,72 @@ body {
   background: rgba(14, 165, 233, 0.15);
 }
 /* First-run guide: ice-blue breathing glow */
+.sidebar.first-run-mode {
+  background: transparent;
+  backdrop-filter: none;
+  border: none !important;
+}
+
+.sidebar.first-run-mode .top-actions,
+.sidebar.first-run-mode .app-list,
+.sidebar.first-run-mode .bottom-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .first-run-guide {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  pointer-events: none;
+  inset: 0;
   z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.sidebar-right .first-run-guide {
-  right: 0;
-}
-
-.sidebar-left .first-run-guide {
-  left: 0;
+  pointer-events: none;
 }
 
 .first-run-glow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 180px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, transparent 0%, #38bdf8 20%, #0ea5e9 50%, #38bdf8 80%, transparent 100%);
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  border-radius: 0;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(56, 189, 248, 0.2) 8%,
+    rgba(56, 189, 248, 0.7) 25%,
+    #38bdf8 50%,
+    rgba(56, 189, 248, 0.7) 75%,
+    rgba(56, 189, 248, 0.2) 92%,
+    transparent 100%
+  );
   box-shadow:
-    0 0 12px 4px rgba(56, 189, 248, 0.5),
-    0 0 32px 12px rgba(56, 189, 248, 0.25),
-    0 0 64px 24px rgba(56, 189, 248, 0.1);
+    0 0 24px 12px rgba(56, 189, 248, 0.45),
+    0 0 64px 28px rgba(56, 189, 248, 0.3),
+    0 0 120px 48px rgba(56, 189, 248, 0.15),
+    0 0 200px 80px rgba(56, 189, 248, 0.05);
   animation: iceBreathe 2.4s ease-in-out infinite;
+}
+
+.sidebar-right .first-run-glow {
+  right: 0;
+}
+
+.sidebar-left .first-run-glow {
+  left: 0;
 }
 
 .first-run-text {
   position: relative;
   z-index: 51;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(30, 30, 34, 0.85);
-  padding: 4px 10px;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(14, 165, 233, 0.2);
+  padding: 5px 10px;
   border-radius: 6px;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   animation: iceBreathe 2.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -970,12 +990,12 @@ body {
 
 @keyframes iceBreathe {
   0%, 100% {
-    opacity: 0.55;
-    filter: brightness(0.9);
+    opacity: 0.5;
+    filter: brightness(0.85);
   }
   50% {
     opacity: 1;
-    filter: brightness(1.2);
+    filter: brightness(1.25);
   }
 }
 
