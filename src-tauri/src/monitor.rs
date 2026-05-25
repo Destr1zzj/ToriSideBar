@@ -86,9 +86,10 @@ pub fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32,
     }
 }
 
-/// Find the leftmost **physical** edge across all available monitors.
-/// Uses monitor.position() (not work_area) so the bar truly touches
-/// the screen bezel regardless of taskbar placement.
+/// Find the leftmost **physical** edge across all available monitors,
+/// then shift 1 px outward to compensate for the Windows 11 invisible
+/// border that sits outside the client area.  This makes the WebView
+/// content truly flush with the screen bezel.
 pub fn get_leftmost_monitor_left(app_handle: &tauri::AppHandle) -> i32 {
     let mut min_left: i32 = 0;
     if let Ok(monitors) = app_handle.available_monitors() {
@@ -99,12 +100,12 @@ pub fn get_leftmost_monitor_left(app_handle: &tauri::AppHandle) -> i32 {
             }
         }
     }
-    min_left
+    min_left - 1
 }
 
-/// Find the rightmost **physical** edge across all available monitors.
-/// Uses monitor.position() + monitor.size() (not work_area) so the bar
-/// truly touches the screen bezel regardless of taskbar placement.
+/// Find the rightmost **physical** edge across all available monitors,
+/// then shift 1 px outward to compensate for the Windows 11 invisible
+/// border that sits outside the client area.
 pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
     let mut max_right: i32 = 0;
     if let Ok(monitors) = app_handle.available_monitors() {
@@ -115,5 +116,5 @@ pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
             }
         }
     }
-    max_right
+    max_right + 1
 }
