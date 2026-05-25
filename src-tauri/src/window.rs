@@ -49,9 +49,9 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
 
     // Edge offset: WebView2 renders with a small inset inside the client area.
     // Left edge shifts left so content touches the bezel.
-    // Right edge shifts right so content touches the bezel (trigger zone unchanged).
+    // Right edge also shifts left so content touches the bezel (inset is on the window's left side).
     const LEFT_OFFSET: i32 = 5;
-    const RIGHT_OFFSET: i32 = 0;
+    const RIGHT_OFFSET: i32 = -6;
 
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
