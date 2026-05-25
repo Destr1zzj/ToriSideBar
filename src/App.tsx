@@ -8,6 +8,7 @@ import { useTriggerWidth } from "./hooks/useTriggerWidth";
 import { useSettings } from "./hooks/useSettings";
 import { useDragSort } from "./hooks/useDragSort";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { loadFirstRun, saveFirstRun, clearFirstRun } from "./utils/storage";
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
 import { AddAppModal } from "./components/AddAppModal";
@@ -32,11 +33,29 @@ export default function App() {
 
   const [isManaging, setIsManaging] = useState(false);
   const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
+  const [showFirstRun, setShowFirstRun] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [shortcutHint, setShortcutHint] = useState("");
+
+  // First-run guide: check on mount
+  useEffect(() => {
+    if (loadFirstRun()) {
+      setShowFirstRun(true);
+      saveFirstRun();
+    }
+  }, []);
+
+  // Auto-hide first-run guide after 5s
+  useEffect(() => {
+    if (!showFirstRun) return;
+    const timer = setTimeout(() => {
+      setShowFirstRun(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [showFirstRun]);
 
   // Global shortcut registration
   useEffect(() => {
@@ -269,6 +288,13 @@ export default function App() {
 
   return (
     <div className={`sidebar sidebar-${barPosition}`}>
+      {showFirstRun && !isManaging && (
+        <div className="first-run-guide">
+          <div className="first-run-glow" />
+          <span className="first-run-text">{t("firstRunHint")}</span>
+        </div>
+      )}
+
       {!isManaging && (
         <div className="top-actions">
           <button className="action-btn top-close-btn" onClick={handleCloseAll} title={t("closeAll")}>
@@ -456,6 +482,15 @@ export default function App() {
                 {t("githubRepo")}
               </span>
             </div>
+            <button
+              className="about-btn test-first-run"
+              onClick={() => {
+                clearFirstRun();
+                setShowFirstRun(true);
+              }}
+            >
+              {t("testFirstRun")}
+            </button>
           </div>
         </div>
       )}

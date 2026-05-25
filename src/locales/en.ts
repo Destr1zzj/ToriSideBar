@@ -55,6 +55,8 @@ export const en = {
   manageApps: "Manage Apps",
   expand: "Expand",
   collapse: "Collapse",
+  firstRunHint: "Hover here to expand",
+  testFirstRun: "Test First Run",
 };
 
 export type Translations = typeof en;

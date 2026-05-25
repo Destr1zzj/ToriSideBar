@@ -57,4 +57,6 @@ export const zh: Translations = {
   manageApps: "管理应用",
   expand: "展开",
   collapse: "收起",
+  firstRunHint: "移入展开",
+  testFirstRun: "测试首次引导",
 };

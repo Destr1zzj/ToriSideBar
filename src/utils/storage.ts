@@ -7,6 +7,7 @@ const POSITION_KEY = "tori-sidebar-position";
 const SHORTCUT_KEY = "tori-sidebar-shortcut";
 const LAST_CHECK_KEY = "tori-sidebar-last-check";
 const UPDATE_AVAILABLE_KEY = "tori-sidebar-update-available";
+const FIRST_RUN_KEY = "tori-sidebar-first-run";
 
 export function loadApps(): AppItem[] {
   try {
@@ -114,4 +115,21 @@ export function loadUpdateAvailable(): boolean {
 
 export function saveUpdateAvailable(available: boolean) {
   localStorage.setItem(UPDATE_AVAILABLE_KEY, available ? "1" : "0");
+}
+
+export function loadFirstRun(): boolean {
+  try {
+    const stored = localStorage.getItem(FIRST_RUN_KEY);
+    // null means first run; "1" means already seen
+    return stored !== "1";
+  } catch { /* ignore */ }
+  return true;
+}
+
+export function saveFirstRun() {
+  localStorage.setItem(FIRST_RUN_KEY, "1");
+}
+
+export function clearFirstRun() {
+  localStorage.removeItem(FIRST_RUN_KEY);
 }
