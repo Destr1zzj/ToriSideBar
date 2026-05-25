@@ -10,6 +10,11 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Attach to parent console when launched from terminal so eprintln! is visible
+    unsafe {
+        winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
+    }
+
     let _mutex = commands::ensure_single_instance();
     if _mutex.is_none() {
         eprintln!("ToriSidebar is already running.");
@@ -40,7 +45,6 @@ pub fn run() {
             commands::set_bar_position,
             commands::get_bar_position,
             commands::toggle_bar_visible,
-            commands::test_global_shortcut,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

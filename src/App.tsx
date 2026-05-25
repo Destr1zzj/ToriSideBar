@@ -27,13 +27,13 @@ export default function App() {
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
-  const [shortcutError, setShortcutError] = useState("");
+  const [shortcutHint, setShortcutHint] = useState("");
 
   // Global shortcut registration
   useEffect(() => {
     let activeShortcut = globalShortcut;
     if (!activeShortcut) {
-      setShortcutError("");
+      setShortcutHint("");
       return;
     }
     const registerShortcut = async () => {
@@ -43,10 +43,10 @@ export default function App() {
             invoke("toggle_bar_visible").catch(() => {});
           }
         });
-        setShortcutError("");
+        setShortcutHint(t("shortcutSetHint"));
       } catch (err) {
         console.error("[shortcut] register failed:", err);
-        setShortcutError(t("shortcutInUse"));
+        setShortcutHint(t("shortcutInUse"));
       }
     };
     registerShortcut();
@@ -58,7 +58,7 @@ export default function App() {
   const clearShortcut = () => {
     setShortcutInput("");
     setGlobalShortcut("");
-    setShortcutError("");
+    setShortcutHint("");
   };
 
   // Re-position bar when position changes
@@ -120,20 +120,8 @@ export default function App() {
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
 
-      // Test if shortcut is available before saving
-      invoke<boolean>("test_global_shortcut", { shortcut })
-        .then((available) => {
-          if (available) {
-            setShortcutError("");
-            setGlobalShortcut(shortcut);
-          } else {
-            setShortcutError(t("shortcutInUse"));
-          }
-        })
-        .catch((err) => {
-          console.error("[shortcut] test failed:", err);
-          setShortcutError(t("shortcutInUse"));
-        });
+      setShortcutError("");
+      setGlobalShortcut(shortcut);
     };
 
     window.addEventListener("keydown", handler, true);
@@ -330,7 +318,7 @@ export default function App() {
             <div className="shortcut-wrap">
               <div className="shortcut-row">
                 <input
-                  className={`shortcut-input ${isRecordingShortcut ? "recording" : ""} ${shortcutError ? "error" : ""}`}
+                  className={`shortcut-input ${isRecordingShortcut ? "recording" : ""} ${shortcutHint && shortcutHint === t("shortcutInUse") ? "error" : ""}`}
                   type="text"
                   readOnly
                   placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
@@ -359,8 +347,8 @@ export default function App() {
                   {isRecordingShortcut ? t("cancel") : t("record")}
                 </button>
               </div>
-              {shortcutError && (
-                <div className="shortcut-error">{shortcutError}</div>
+              {shortcutHint && (
+                <div className={`shortcut-hint ${shortcutHint === t("shortcutInUse") ? "error" : ""}`}>{shortcutHint}</div>
               )}
             </div>
           </div>

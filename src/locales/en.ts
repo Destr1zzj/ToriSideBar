@@ -39,7 +39,8 @@ export const en = {
   save: "Save",
   record: "Record",
   pressShortcut: "Press shortcut...",
-  shortcutInUse: "Shortcut already in use, please choose another",
+  shortcutInUse: "Shortcut may be used by another program, please choose another",
+  shortcutSetHint: "Shortcut saved. If it doesn't work, it may be used by another program",
   clear: "Clear",
 };
 

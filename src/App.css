@@ -736,10 +736,14 @@ body {
   color: #ef4444;
 }
 
-.shortcut-error {
+.shortcut-hint {
   font-size: 11px;
-  color: #ef4444;
+  color: #22c55e;
   padding-left: 2px;
+}
+
+.shortcut-hint.error {
+  color: #ef4444;
 }
 
 .shortcut-save-btn {
