@@ -79,18 +79,14 @@ export function useDragSort(
       const mouseY = lastMouseYRef.current;
       let scrolled = false;
 
-      if (
-        mouseY < rect.top + SCROLL_MARGIN &&
-        container.scrollTop > 0
-      ) {
+      if (mouseY < rect.top + SCROLL_MARGIN) {
+        const old = container.scrollTop;
         container.scrollTop -= SCROLL_SPEED;
-        scrolled = true;
-      } else if (
-        mouseY > rect.bottom - SCROLL_MARGIN &&
-        container.scrollTop + container.clientHeight < container.scrollHeight
-      ) {
+        scrolled = container.scrollTop !== old;
+      } else if (mouseY > rect.bottom - SCROLL_MARGIN) {
+        const old = container.scrollTop;
         container.scrollTop += SCROLL_SPEED;
-        scrolled = true;
+        scrolled = container.scrollTop !== old;
       }
 
       if (scrolled) {
