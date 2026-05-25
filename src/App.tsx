@@ -103,12 +103,19 @@ export default function App() {
     [apps, reorderApps]
   );
 
+  const handleAppClickByIndex = useCallback(
+    (index: number) => {
+      handleAppClick(apps[index]);
+    },
+    [apps, handleAppClick]
+  );
+
   const {
     containerRef,
     draggingIndex,
     dragOverIndex,
     handleDragStart,
-  } = useDragSort(apps.length, handleReorder);
+  } = useDragSort(apps.length, handleReorder, handleAppClickByIndex);
 
   const toggleManageMode = useCallback(async () => {
     setIsManaging((prev) => {
@@ -143,7 +150,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="app-list" ref={isManaging ? containerRef : undefined}>
+      <div className="app-list" ref={containerRef}>
         {apps.map((app, index) =>
           isManaging ? (
             <ManageAppItem
@@ -161,7 +168,9 @@ export default function App() {
               key={app.id}
               app={app}
               isActive={activeApps.has(app.label)}
-              onClick={handleAppClick}
+              isDragging={draggingIndex === index}
+              isDragOver={dragOverIndex === index}
+              onMouseDown={() => handleDragStart(index)}
               onClose={handleCloseApp}
             />
           )

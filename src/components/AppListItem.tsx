@@ -3,28 +3,46 @@ import { AppIcon } from "./AppIcon";
 import { getDomain } from "../utils/favicon";
 import type { AppItem } from "../types";
 
-interface AppItemProps {
+interface AppListItemProps {
   app: AppItem;
   isActive: boolean;
-  onClick: (app: AppItem) => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  onMouseDown: () => void;
   onClose: (app: AppItem, e: React.MouseEvent) => void;
 }
 
-export function AppListItem({ app, isActive, onClick, onClose }: AppItemProps) {
+export function AppListItem({
+  app,
+  isActive,
+  isDragging,
+  isDragOver,
+  onMouseDown,
+  onClose,
+}: AppListItemProps) {
   const { t } = useI18n();
 
   return (
-    <div className="app-item-wrapper">
-      <button
+    <div
+      className={`app-item-wrapper ${isDragging ? "dragging" : ""} ${
+        isDragOver ? "drag-over" : ""
+      }`}
+      onMouseDown={onMouseDown}
+    >
+      <div
         className={`app-item ${isActive ? "active" : ""}`}
-        onClick={() => onClick(app)}
         title={app.title}
       >
-        <AppIcon icon={app.icon} title={app.title} domain={getDomain(app.url)} />
-      </button>
+        <AppIcon
+          icon={app.icon}
+          title={app.title}
+          domain={getDomain(app.url)}
+        />
+      </div>
       {isActive && (
         <button
           className="app-close-btn"
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => onClose(app, e)}
           title={t("close")}
         >

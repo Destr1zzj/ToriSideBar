@@ -52,6 +52,7 @@ export function ManageAppItem({
       </div>
       <button
         className="manage-action-btn delete"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={() => onRemove(app.id)}
         title={t("delete")}
       >
