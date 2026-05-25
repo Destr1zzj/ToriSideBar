@@ -90,6 +90,7 @@ body {
   background: transparent;
   outline: none;
   padding: 0;
+  overflow: hidden;
 }
 
 .app-item:hover {
@@ -126,6 +127,8 @@ body {
   font-size: 18px;
   line-height: 1;
   background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .app-icon-img {
