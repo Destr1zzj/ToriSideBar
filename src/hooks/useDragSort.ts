@@ -42,6 +42,7 @@ export function useDragSort(
   const stepRef = useRef(50); // item height + gap, measured on drag start
   const origRectsRef = useRef<DOMRect[]>([]); // original rects before any transform
   const origScrollTopRef = useRef(0);
+  const maxScrollTopRef = useRef(0);
   const lastMouseYRef = useRef(0);
   const autoScrollRafRef = useRef<number | null>(null);
 
@@ -79,13 +80,19 @@ export function useDragSort(
       const mouseY = lastMouseYRef.current;
       let scrolled = false;
 
-      if (mouseY < rect.top + SCROLL_MARGIN) {
+      if (mouseY < rect.top + SCROLL_MARGIN && container.scrollTop > 0) {
         const old = container.scrollTop;
-        container.scrollTop -= SCROLL_SPEED;
+        container.scrollTop = Math.max(0, old - SCROLL_SPEED);
         scrolled = container.scrollTop !== old;
-      } else if (mouseY > rect.bottom - SCROLL_MARGIN) {
+      } else if (
+        mouseY > rect.bottom - SCROLL_MARGIN &&
+        container.scrollTop < maxScrollTopRef.current
+      ) {
         const old = container.scrollTop;
-        container.scrollTop += SCROLL_SPEED;
+        container.scrollTop = Math.min(
+          maxScrollTopRef.current,
+          old + SCROLL_SPEED
+        );
         scrolled = container.scrollTop !== old;
       }
 
@@ -124,6 +131,10 @@ export function useDragSort(
       const children = Array.from(containerRef.current.children) as HTMLElement[];
       origRectsRef.current = children.map((el) => el.getBoundingClientRect());
       origScrollTopRef.current = containerRef.current.scrollTop;
+      maxScrollTopRef.current = Math.max(
+        0,
+        containerRef.current.scrollHeight - containerRef.current.clientHeight
+      );
       if (children.length >= 2) {
         stepRef.current = origRectsRef.current[1].top - origRectsRef.current[0].top;
       }
