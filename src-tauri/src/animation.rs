@@ -56,7 +56,7 @@ pub fn animate_bar(app_handle: AppHandle) {
             // - Otherwise derive from visibility state
             // Edge offset to compensate for WebView2 content inset.
             const LEFT_OFFSET: i32 = 5;
-            const RIGHT_OFFSET: i32 = 3;
+            const RIGHT_OFFSET: i32 = 6;
             let target_x = {
                 let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
                 if explicit != 0 {
