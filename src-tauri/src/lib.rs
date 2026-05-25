@@ -106,6 +106,14 @@ const INJECT_JS: &str = r#"(function() {
 
   const WINDOW_LABEL = "__WINDOW_LABEL__";
 
+  const _lang = localStorage.getItem('tori-sidebar-language') || 'en';
+  const _t = {
+    back: { en: 'Back', zh: '返回' },
+    reload: { en: 'Reload', zh: '刷新' },
+    openExternal: { en: 'Open in browser', zh: '用浏览器打开' },
+    close: { en: 'Close', zh: '关闭' },
+  };
+
   function tauriInvoke(cmd, args) {
     try {
       const tauri = window.__TAURI__ || window.__TAURI_INTERNALS__;
@@ -220,28 +228,28 @@ const INJECT_JS: &str = r#"(function() {
 
     const back = document.createElement('button');
     back.innerHTML = '←';
-    back.title = '返回';
+    back.title = _t.back[_lang] || _t.back['en'];
     back.style.cssText = btnStyle;
     back.onclick = function(e) { e.stopPropagation(); history.back(); };
     bar.appendChild(back);
 
     const reload = document.createElement('button');
     reload.innerHTML = '↻';
-    reload.title = '刷新';
+    reload.title = _t.reload[_lang] || _t.reload['en'];
     reload.style.cssText = btnStyle;
     reload.onclick = function(e) { e.stopPropagation(); location.reload(); };
     bar.appendChild(reload);
 
     const openExternal = document.createElement('button');
     openExternal.innerHTML = '↗';
-    openExternal.title = '用浏览器打开';
+    openExternal.title = _t.openExternal[_lang] || _t.openExternal['en'];
     openExternal.style.cssText = btnStyle;
     openExternal.onclick = function(e) { e.stopPropagation(); tauriInvoke('open_external_url', { url: location.href }); };
     bar.appendChild(openExternal);
 
     const close = document.createElement('button');
     close.innerHTML = '×';
-    close.title = '关闭';
+    close.title = _t.close[_lang] || _t.close['en'];
     close.style.cssText = 'width:28px;height:28px;border-radius:50%;border:none;background:rgba(239,68,68,0.8);color:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;padding:0;line-height:1';
     close.onclick = function(e) { e.stopPropagation(); tauriInvoke('close_app_window', { label: WINDOW_LABEL }); };
     bar.appendChild(close);
@@ -853,7 +861,7 @@ pub fn run() {
         ])
         .setup(|app| {
             // System tray icon with right-click menu
-            let quit_i = tauri::menu::MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let quit_i = tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = tauri::menu::Menu::with_items(app, &[&quit_i])?;
             let _tray = tauri::tray::TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())

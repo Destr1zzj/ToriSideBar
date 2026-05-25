@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "./i18n";
 import "./App.css";
 
 interface AppItem {
@@ -161,6 +162,8 @@ function AppIcon({ icon, title, domain }: { icon: string; title: string; domain?
 }
 
 function App() {
+  const { t, lang, setLang } = useI18n();
+
   const [apps, setApps] = useState<AppItem[]>(loadApps);
   const [activeApps, setActiveApps] = useState<Set<string>>(loadActive);
   const [showAdd, setShowAdd] = useState(false);
@@ -198,11 +201,11 @@ function App() {
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isManaging) {
-        // 先尝试关闭子窗口
+        // Try to close child window first
         const handled = await invoke<boolean>("handle_esc").catch(() => false);
         if (handled) return;
 
-        // 没有子窗口，关闭最后活跃的父窗口
+        // No child window, close last active parent window
         if (activeApps.size > 0) {
           const last = Array.from(activeApps).pop();
           if (last) {
@@ -228,7 +231,7 @@ function App() {
         url: app.url,
       });
       setActiveApps((prev) => {
-        // 只在新开窗口时加入集合；隐藏时不移除，保持后台保活的视觉状态
+        // Only add to set when newly opened; keep visual state when hidden (background keep-alive)
         if (opened && !prev.has(app.label)) {
           const next = new Set(prev);
           next.add(app.label);
@@ -369,7 +372,7 @@ function App() {
     <div className="sidebar">
       {!isManaging && (
         <div className="top-actions">
-          <button className="action-btn top-close-btn" onClick={handleCloseAll} title="关闭全部窗口">
+          <button className="action-btn top-close-btn" onClick={handleCloseAll} title={t("closeAll")}>
             ✕
           </button>
         </div>
@@ -388,7 +391,7 @@ function App() {
                     className="manage-action-btn"
                     disabled={index === 0}
                     onClick={() => handleMoveApp(index, -1)}
-                    title="上移"
+                    title={t("moveUp")}
                   >
                     ↑
                   </button>
@@ -396,7 +399,7 @@ function App() {
                     className="manage-action-btn"
                     disabled={index === apps.length - 1}
                     onClick={() => handleMoveApp(index, 1)}
-                    title="下移"
+                    title={t("moveDown")}
                   >
                     ↓
                   </button>
@@ -410,7 +413,7 @@ function App() {
                 <button
                   className="manage-action-btn delete"
                   onClick={() => handleRemoveApp(app.id)}
-                  title="删除"
+                  title={t("delete")}
                 >
                   🗑️
                 </button>
@@ -428,7 +431,7 @@ function App() {
                   <button
                     className="app-close-btn"
                     onClick={(e) => handleCloseApp(app, e)}
-                    title="关闭"
+                    title={t("close")}
                   >
                     ×
                   </button>
@@ -442,7 +445,7 @@ function App() {
       {isManaging && (
         <div className="manage-settings">
           <div className="setting-row">
-            <label>触发宽度</label>
+            <label>{t("triggerWidth")}</label>
             <div className="slider-row">
               <input
                 type="range"
@@ -454,8 +457,25 @@ function App() {
               <span className="slider-value">{triggerWidth}px</span>
             </div>
           </div>
+          <div className="setting-row">
+            <label>{t("language")}</label>
+            <div className="lang-selector">
+              <button
+                className={`lang-btn ${lang === "en" ? "active" : ""}`}
+                onClick={() => setLang("en")}
+              >
+                {t("english")}
+              </button>
+              <button
+                className={`lang-btn ${lang === "zh" ? "active" : ""}`}
+                onClick={() => setLang("zh")}
+              >
+                {t("chinese")}
+              </button>
+            </div>
+          </div>
           <button className="manage-reset-btn" onClick={handleResetApps}>
-            恢复默认
+            {t("reset")}
           </button>
         </div>
       )}
@@ -463,18 +483,18 @@ function App() {
       <div className="bottom-actions">
         {!isManaging ? (
           <>
-            <button className="action-btn" onClick={openAdd} title="添加应用">
+            <button className="action-btn" onClick={openAdd} title={t("addApp")}>
               ➕
             </button>
-            <button className="action-btn" onClick={toggleManageMode} title="管理">
+            <button className="action-btn" onClick={toggleManageMode} title={t("manage")}>
               ⚙️
             </button>
-            <button className="action-btn exit-btn" onClick={handleExitApp} title="退出应用">
+            <button className="action-btn exit-btn" onClick={handleExitApp} title={t("exitApp")}>
               🚪
             </button>
           </>
         ) : (
-          <button className="action-btn manage-done-btn" onClick={toggleManageMode} title="完成">
+          <button className="action-btn manage-done-btn" onClick={toggleManageMode} title={t("done")}>
             ✓
           </button>
         )}
@@ -483,7 +503,7 @@ function App() {
       {showAdd && (
         <div className="modal-overlay" onClick={closeAdd}>
           <div className="modal add-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>添加应用</h3>
+            <h3>{t("addAppTitle")}</h3>
 
             <div className="favicon-selector">
               {faviconSources.map((src, i) => (
@@ -494,7 +514,7 @@ function App() {
                     setUseEmoji(false);
                     setSelectedSource(i);
                   }}
-                  title={`源 ${i + 1}`}
+                  title={`${t("source")} ${i + 1}`}
                 >
                   <FaviconOptionImg src={src} />
                 </button>
@@ -505,35 +525,35 @@ function App() {
                   setUseEmoji(true);
                   setNewIcon(getRandomEmoji());
                 }}
-                title="随机 emoji"
+                title={t("randomEmoji")}
               >
                 <span>😀</span>
               </button>
             </div>
             {useEmoji && (
               <p className="emoji-label">
-                已选: {newIcon || getRandomEmoji()}
+                {t("selected")} {newIcon || getRandomEmoji()}
               </p>
             )}
 
             <input
-              placeholder="应用名称"
+              placeholder={t("appNamePlaceholder")}
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               autoFocus
             />
             <input
-              placeholder="网址 (如: notion.so)"
+              placeholder={t("urlPlaceholder")}
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddApp()}
             />
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={closeAdd}>
-                取消
+                {t("cancel")}
               </button>
               <button className="modal-btn confirm" onClick={handleAddApp}>
-                添加
+                {t("add")}
               </button>
             </div>
           </div>
@@ -543,14 +563,14 @@ function App() {
       {showExitConfirm && (
         <div className="modal-overlay" onClick={closeExitConfirm}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>确认退出</h3>
-            <p className="confirm-text">确定要退出 ToriSidebar 吗？</p>
+            <h3>{t("confirmExitTitle")}</h3>
+            <p className="confirm-text">{t("confirmExitMessage")}</p>
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={closeExitConfirm}>
-                取消
+                {t("cancel")}
               </button>
               <button className="modal-btn confirm" onClick={confirmExit}>
-                退出
+                {t("quit")}
               </button>
             </div>
           </div>

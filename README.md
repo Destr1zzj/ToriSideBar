@@ -76,6 +76,16 @@ Each web app runs in its own **independent WebView window** with isolated cookie
 - ✅ OAuth / social login works without throwing weird errors
 - ⚠️ If you expect it to remember passwords... that's Windows Credential Manager's job, not mine
 
+### 🌐 Language
+
+ToriSidebar is now fully bilingual. The default language is **English**. To switch to Chinese:
+
+1. Click the ⚙️ button to enter manage mode.
+2. Select your preferred language in the **Language** section.
+3. Your choice is saved automatically.
+
+The setting applies to the sidebar UI, all modals, the tray menu, and even the floating navigation bar inside app windows.
+
 ### 🐛 Known Quirks
 
 - Occasionally when teleporting across monitors, the bar might flash for a split second. This is a Windows window manager thing. I don't make the rules, I just work around them.
