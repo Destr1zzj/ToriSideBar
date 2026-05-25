@@ -44,7 +44,8 @@ export default function App() {
           }
         });
         setShortcutError("");
-      } catch {
+      } catch (err) {
+        console.error("[shortcut] register failed:", err);
         setShortcutError(t("shortcutInUse"));
       }
     };
@@ -118,8 +119,21 @@ export default function App() {
       const shortcut = [...mods, key].join("+");
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
-      setShortcutError("");
-      setGlobalShortcut(shortcut);
+
+      // Test if shortcut is available before saving
+      invoke<boolean>("test_global_shortcut", { shortcut })
+        .then((available) => {
+          if (available) {
+            setShortcutError("");
+            setGlobalShortcut(shortcut);
+          } else {
+            setShortcutError(t("shortcutInUse"));
+          }
+        })
+        .catch((err) => {
+          console.error("[shortcut] test failed:", err);
+          setShortcutError(t("shortcutInUse"));
+        });
     };
 
     window.addEventListener("keydown", handler, true);

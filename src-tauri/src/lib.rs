@@ -40,6 +40,7 @@ pub fn run() {
             commands::set_bar_position,
             commands::get_bar_position,
             commands::toggle_bar_visible,
+            commands::test_global_shortcut,
         ])
         .setup(|app| {
             // System tray icon with right-click menu
