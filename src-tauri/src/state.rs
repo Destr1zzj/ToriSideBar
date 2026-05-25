@@ -45,6 +45,11 @@ pub static MONITOR_INFO_READY: AtomicBool = AtomicBool::new(false);
 /// during drag-to-sort operations.
 pub static DRAGGING: AtomicBool = AtomicBool::new(false);
 
+/// When true, the bar is locked visible by the global shortcut.
+/// Auto-hide is suspended until the shortcut is pressed again or the
+/// user clicks outside the bar/app area.
+pub static BAR_LOCKED: AtomicBool = AtomicBool::new(false);
+
 /// Parent -> child window label mapping.
 pub static CHILD_WINDOWS: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));

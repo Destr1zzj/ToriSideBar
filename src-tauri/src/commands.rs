@@ -97,8 +97,16 @@ pub fn get_bar_position() -> String {
 
 #[tauri::command]
 pub fn toggle_bar_visible() {
-    let current = crate::state::BAR_TARGET_VISIBLE.load(std::sync::atomic::Ordering::SeqCst);
-    crate::state::BAR_TARGET_VISIBLE.store(!current, std::sync::atomic::Ordering::SeqCst);
+    let locked = crate::state::BAR_LOCKED.load(std::sync::atomic::Ordering::SeqCst);
+    if locked {
+        // Unlock and hide
+        crate::state::BAR_LOCKED.store(false, std::sync::atomic::Ordering::SeqCst);
+        crate::state::BAR_TARGET_VISIBLE.store(false, std::sync::atomic::Ordering::SeqCst);
+    } else {
+        // Show and lock
+        crate::state::BAR_LOCKED.store(true, std::sync::atomic::Ordering::SeqCst);
+        crate::state::BAR_TARGET_VISIBLE.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
 }
 
 // ------------------------------------------------------------------

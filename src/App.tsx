@@ -355,6 +355,7 @@ export default function App() {
               {shortcutHint && (
                 <div className={`shortcut-hint ${shortcutHint === t("shortcutInUse") ? "error" : ""}`}>{shortcutHint}</div>
               )}
+              <div className="shortcut-desc">{t("shortcutLockHint")}</div>
             </div>
           </div>
           <div className="setting-row">

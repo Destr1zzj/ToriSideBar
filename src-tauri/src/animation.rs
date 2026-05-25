@@ -231,6 +231,29 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 }
             }
 
+            // Locked by global shortcut: force visible, unlock on click outside
+            if BAR_LOCKED.load(Ordering::SeqCst) {
+                if !over_bar && !over_app {
+                    unsafe {
+                        let lbutton = winapi::um::winuser::GetAsyncKeyState(
+                            winapi::um::winuser::VK_LBUTTON,
+                        );
+                        if lbutton != 0 {
+                            BAR_LOCKED.store(false, Ordering::SeqCst);
+                            BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
+                            TRIGGER_ACTIVE.store(false, Ordering::SeqCst);
+                            was_over = false;
+                            continue;
+                        }
+                    }
+                }
+                if !was_over {
+                    BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
+                    was_over = true;
+                }
+                continue;
+            }
+
             let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
             let trigger = TRIGGER_WIDTH.load(Ordering::SeqCst) as i32;
             // Trigger zone is measured from the monitor's configured edge.

@@ -41,6 +41,7 @@ export const en = {
   pressShortcut: "Press shortcut...",
   shortcutInUse: "Shortcut may be used by another program, please choose another",
   shortcutSetHint: "Shortcut saved. If it doesn't work, it may be used by another program",
+  shortcutLockHint: "Press shortcut to lock the bar visible; press again or click outside to unlock",
   clear: "Clear",
 };
 

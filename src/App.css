@@ -746,6 +746,13 @@ body {
   color: #ef4444;
 }
 
+.shortcut-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  padding-left: 2px;
+  line-height: 1.4;
+}
+
 .shortcut-save-btn {
   padding: 6px 12px;
   border-radius: 8px;

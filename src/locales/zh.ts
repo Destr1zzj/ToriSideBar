@@ -43,5 +43,6 @@ export const zh: Translations = {
   pressShortcut: "按下快捷键...",
   shortcutInUse: "快捷键可能被其他程序占用，请更换",
   shortcutSetHint: "快捷键已保存，若不生效可能被其他程序占用",
+  shortcutLockHint: "按下快捷键锁定边栏为常显模式；再次按下或点击外部区域解除锁定",
   clear: "清除",
 };
