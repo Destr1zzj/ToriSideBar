@@ -120,7 +120,7 @@ export default function App() {
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
 
-      setShortcutError("");
+      setShortcutHint("");
       setGlobalShortcut(shortcut);
     };
 
@@ -324,6 +324,11 @@ export default function App() {
                   placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
                   value={shortcutInput}
                   onChange={(e) => setShortcutInput(e.target.value)}
+                  onClick={() => {
+                    if (!isRecordingShortcut) {
+                      setIsRecordingShortcut(true);
+                    }
+                  }}
                 />
                 {shortcutInput && !isRecordingShortcut && (
                   <button
