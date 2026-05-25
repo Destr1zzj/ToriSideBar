@@ -9,9 +9,9 @@
 
 | 优先级 | 功能 | 实现思路 | 预估工作量 |
 |--------|------|----------|-----------|
-| P0 | 全局快捷键 `Ctrl+Shift+Space` | `tauri-plugin-global-shortcut` 已在依赖，只需接线调用 `expand_bar`/`collapse_bar` | 小 |
+| ~~P0~~ | ~~全局快捷键 `Ctrl+Shift+Space`~~ | ~~`tauri-plugin-global-shortcut` 已在依赖，只需接线调用 `expand_bar`/`collapse_bar`~~ | ~~小~~ |
 | P0 | 首次启动引导 | 首次运行时边栏默认展开 3 秒，或显示半透明箭头提示 "滑到右边缘触发" | 小 |
-| P1 | 边栏位置切换（左/右） | Rust `position_bar` 中 x 坐标改为 `wx`（左侧）或 `wx + ww - bar_width`（右侧），加设置项持久化 | 中 |
+| ~~P1~~ | ~~边栏位置切换（左/右）~~ | ~~Rust `position_bar` 中 x 坐标改为 `wx`（左侧）或 `wx + ww - bar_width`（右侧），加设置项持久化~~ | ~~中~~ |
 | P1 | 配置导入/导出 | 导出 `localStorage` 内容 + 设置项为 JSON；导入时解析并覆盖 | 小 |
 | P1 | 应用搜索过滤 | 边栏顶部加迷你搜索框，`input` 时过滤 `apps` 数组 | 小 |
 
@@ -71,7 +71,7 @@
 ## 六、技术债务
 
 - [ ] `open_external_url` 仍在用硬编码 `cmd /c start`，应改用 `tauri-plugin-opener`
-- [ ] `tauri-plugin-global-shortcut` 已依赖但未使用
+- [x] ~~`tauri-plugin-global-shortcut` 已依赖但未使用~~ → 已实现
 - [ ] 前端没有 Error Boundary
 - [ ] Rust 侧没有 panic hook
 - [ ] 没有 CI/CD 流水线（每次手动构建 + 上传）
