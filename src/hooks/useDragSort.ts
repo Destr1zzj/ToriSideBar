@@ -8,6 +8,8 @@ interface DragSortState {
 }
 
 const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
+const SCROLL_MARGIN = 24; // px from container edge to trigger auto-scroll
+const SCROLL_SPEED = 10;  // px per frame
 
 /**
  * Custom drag-sort hook using mouse events.
@@ -15,6 +17,7 @@ const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
  *
  * When dragging, the dragged item scales up and follows the cursor.
  * Other items slide out of the way with smooth CSS transitions.
+ * Auto-scrolls the list when the mouse hovers near the top/bottom edge.
  */
 export function useDragSort(
   itemCount: number,
@@ -38,6 +41,41 @@ export function useDragSort(
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const stepRef = useRef(50); // item height + gap, measured on drag start
   const origRectsRef = useRef<DOMRect[]>([]); // original rects before any transform
+  const origScrollTopRef = useRef(0);
+  const lastMouseYRef = useRef(0);
+  const autoScrollRafRef = useRef<number | null>(null);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRafRef.current !== null) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  }, []);
+
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollRafRef.current !== null) return;
+
+    const tick = () => {
+      const container = containerRef.current;
+      if (!container || stateRef.current.draggingIndex === null) {
+        stopAutoScroll();
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const mouseY = lastMouseYRef.current;
+
+      if (mouseY < rect.top + SCROLL_MARGIN) {
+        container.scrollTop -= SCROLL_SPEED;
+      } else if (mouseY > rect.bottom - SCROLL_MARGIN) {
+        container.scrollTop += SCROLL_SPEED;
+      }
+
+      autoScrollRafRef.current = requestAnimationFrame(tick);
+    };
+
+    autoScrollRafRef.current = requestAnimationFrame(tick);
+  }, [stopAutoScroll]);
 
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
@@ -48,10 +86,11 @@ export function useDragSort(
 
     // Measure the exact vertical step (item height + flex gap)
     // and record original rects so mouse-to-index mapping stays accurate
-    // even after other items are shifted by transforms.
+    // even after other items are shifted by transforms or the list scrolls.
     if (containerRef.current) {
       const children = Array.from(containerRef.current.children) as HTMLElement[];
       origRectsRef.current = children.map((el) => el.getBoundingClientRect());
+      origScrollTopRef.current = containerRef.current.scrollTop;
       if (children.length >= 2) {
         stepRef.current = origRectsRef.current[1].top - origRectsRef.current[0].top;
       }
@@ -65,6 +104,8 @@ export function useDragSort(
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
+
+      lastMouseYRef.current = e.clientY;
 
       // Track whether the mouse has moved enough to count as a drag
       if (startPosRef.current) {
@@ -84,17 +125,21 @@ export function useDragSort(
       const rects = origRectsRef.current;
       if (rects.length === 0) return;
 
-      // Use the original (un-transformed) positions to compute the target slot.
-      // relativeY = how far below the first item's original top the mouse is.
-      // Rounding by step gives stable boundaries between slots.
+      // Use the original (un-transformed) positions plus scroll delta
+      // to compute the target slot accurately while the list scrolls.
+      const container = containerRef.current;
+      const scrollDelta = container.scrollTop - origScrollTopRef.current;
       const firstTop = rects[0].top;
-      const relativeY = e.clientY - firstTop;
+      const relativeY = e.clientY - firstTop + scrollDelta;
       let targetIndex = Math.round(relativeY / stepRef.current);
       targetIndex = Math.max(0, Math.min(targetIndex, itemCount - 1));
 
       if (targetIndex !== stateRef.current.dragOverIndex) {
         setState((prev) => ({ ...prev, dragOverIndex: targetIndex }));
       }
+
+      // Kick off auto-scroll if the mouse is near the container edge
+      startAutoScroll();
     };
 
     const handleMouseUp = () => {
@@ -114,6 +159,7 @@ export function useDragSort(
       setState({ draggingIndex: null, dragOverIndex: null, mouseOffset: 0 });
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      stopAutoScroll();
       invoke("set_dragging", { dragging: false }).catch(() => {});
     };
 
@@ -125,9 +171,10 @@ export function useDragSort(
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      stopAutoScroll();
       invoke("set_dragging", { dragging: false }).catch(() => {});
     };
-  }, [state.draggingIndex, itemCount, onReorder]);
+  }, [state.draggingIndex, itemCount, onReorder, startAutoScroll, stopAutoScroll]);
 
   /** Compute the inline style for each list item during drag. */
   const getItemStyle = useCallback(
