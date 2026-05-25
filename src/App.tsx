@@ -101,6 +101,7 @@ export default function App() {
       const shortcut = [...mods, key].join("+");
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
+      setGlobalShortcut(shortcut);
     };
 
     window.addEventListener("keydown", handler, true);
@@ -237,7 +238,7 @@ export default function App() {
   }, [isManaging]);
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar sidebar-${barPosition}`}>
       {!isManaging && (
         <div className="top-actions">
           <button className="action-btn top-close-btn" onClick={handleCloseAll} title={t("closeAll")}>
@@ -315,14 +316,6 @@ export default function App() {
               >
                 {isRecordingShortcut ? t("cancel") : t("record")}
               </button>
-              {!isRecordingShortcut && (
-                <button
-                  className="shortcut-save-btn"
-                  onClick={() => setGlobalShortcut(shortcutInput)}
-                >
-                  {t("save")}
-                </button>
-              )}
             </div>
           </div>
           <div className="setting-row">

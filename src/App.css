@@ -27,6 +27,14 @@ body {
   padding: 6px 0;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Border sits on the side facing the screen edge so the inner content
+   truly touches the bezel. */
+.sidebar.sidebar-left {
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sidebar.sidebar-right {
   border-left: 1px solid rgba(255, 255, 255, 0.04);
 }
 
