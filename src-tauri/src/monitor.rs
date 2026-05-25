@@ -161,8 +161,10 @@ pub fn get_leftmost_monitor_left(app_handle: &tauri::AppHandle) -> i32 {
         min_left_tauri, min_left_winapi,
         get_rightmost_monitor_right_tauri(app_handle), max_right_winapi
     ));
-    // Use WinAPI value (more authoritative on Windows) without compensation
-    min_left_winapi
+    // Use WinAPI value (more authoritative on Windows).
+    // Subtract 5 px to compensate for the WebView2 content inset that sits
+    // inside the client area on the left edge.
+    min_left_winapi - 5
 }
 
 fn get_rightmost_monitor_right_tauri(app_handle: &tauri::AppHandle) -> i32 {
@@ -179,7 +181,8 @@ fn get_rightmost_monitor_right_tauri(app_handle: &tauri::AppHandle) -> i32 {
 }
 
 /// Find the rightmost physical edge across all available monitors.
-pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
+pub fn get_rightmost_monitor_right(_app_handle: &tauri::AppHandle) -> i32 {
     let (_min_left, max_right) = get_display_bounds_winapi();
-    max_right
+    // Add 5 px to compensate for the WebView2 content inset on the right edge.
+    max_right + 5
 }
