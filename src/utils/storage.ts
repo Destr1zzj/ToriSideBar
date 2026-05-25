@@ -75,7 +75,9 @@ export function saveBarPosition(position: "left" | "right") {
 export function loadGlobalShortcut(): string {
   try {
     const stored = localStorage.getItem(SHORTCUT_KEY);
-    if (stored) return stored;
+    // stored === "" means user explicitly cleared the shortcut;
+    // stored === null means never set — use default.
+    if (stored !== null) return stored;
   } catch { /* ignore */ }
   return "Ctrl+Shift+Space";
 }
