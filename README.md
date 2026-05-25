@@ -26,6 +26,7 @@ The name "Tori" (鳥) means "bird" in Japanese 🐦, because this thing behaves 
 
 | Feature | Description / 描述 |
 |---------|--------------------|
+| 📥 **Edge Bar Import** | One-click import your custom apps from Edge sidebar (Stable / Beta / Dev / Canary, all profiles). 一键从 Edge 侧边栏导入自定义应用（支持正式版 / Beta / Dev / Canary 及所有用户配置）。 |
 | 🖱️ **Drag-to-Sort** | Drag icons to reorder apps directly — no manage panel needed. 直接拖动图标排序，无需管理面板。 |
 | ✨ **Live Drag Animation** | Dragged item follows cursor with scale-up; others slide out of the way. 被拖动项放大跟随光标，其他项平滑让位。 |
 | 📜 **Auto-Scroll List** | List auto-scrolls when dragging near top/bottom edges. 靠近顶部/底部边缘时列表自动滚动。 |
@@ -33,7 +34,6 @@ The name "Tori" (鳥) means "bird" in Japanese 🐦, because this thing behaves 
 | 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
 | 🔙 **Smart Back Button** | Nav bar back button hides when `history.length <= 1`. 历史记录只有一页时自动隐藏返回按钮。 |
 | 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
-| 📥 **Edge Bar Import** | One-click import your custom apps from Edge sidebar. 一键从 Edge 侧边栏导入自定义应用。 |
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
 
 ## What's Under the Hood
