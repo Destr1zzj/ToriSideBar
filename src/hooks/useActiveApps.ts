@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { loadActive, saveActive } from "../utils/storage";
 
 export function useActiveApps() {
-  const [activeApps, setActiveApps] = useState<Set<string>>(loadActive);
-
-  useEffect(() => {
-    saveActive(activeApps);
-  }, [activeApps]);
+  // Do not persist active apps across restarts — child windows are not
+  // restored, so restoring the active set would show stale active indicators.
+  const [activeApps, setActiveApps] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const unlisten = listen<string>("app-closed", (event) => {
