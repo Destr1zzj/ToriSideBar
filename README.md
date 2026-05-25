@@ -22,6 +22,18 @@ The name "Tori" (鳥) means "bird" in Japanese 🐦, because this thing behaves 
 
 ---
 
+## Features / 功能亮点
+
+| Feature | Description / 描述 |
+|---------|--------------------|
+| 🖱️ **Drag-to-Sort** | Drag icons to reorder apps directly — no manage panel needed. 直接拖动图标排序，无需管理面板。 |
+| ✨ **Live Drag Animation** | Dragged item follows cursor with scale-up; others slide out of the way. 被拖动项放大跟随光标，其他项平滑让位。 |
+| 📜 **Auto-Scroll List** | List auto-scrolls when dragging near top/bottom edges. 靠近顶部/底部边缘时列表自动滚动。 |
+| 🖥️ **Multi-Monitor** | Bar teleports smoothly between monitors as you move the mouse. 鼠标跨显示器时边栏平滑跟随。 |
+| 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
+| 🔙 **Smart Back Button** | Nav bar back button hides when `history.length <= 1`. 历史记录只有一页时自动隐藏返回按钮。 |
+| 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
+
 ## What's Under the Hood
 
 Our ingredient list, presented in the style of a bubble tea shop menu:
@@ -34,23 +46,36 @@ Our ingredient list, presented in the style of a bubble tea shop menu:
 | 🎨 Renderer | **Edge WebView2** | Yes, I'm using Microsoft's engine to build a replacement for Microsoft's product. The irony is not lost on me. |
 | 🦀 Low-level Logic | **Rust + WinAPI** | Multi-monitor detection, mouse trigger zones, slide animations — the kind of precision work that would leak memory in any other language |
 
-Directory layout:
+Directory layout / 项目结构：
 
 ```
 edge-sidebar/
-├── src/                    # React frontend — responsible for looking good
-│   ├── App.tsx             # Main UI: icon list + all the modals
-│   ├── App.css             # Dark mode that actually looks decent
-│   └── main.tsx            # Entry point. Does entry point things.
-├── src-tauri/              # Rust backend — responsible for doing the heavy lifting
+├── src/                        # React frontend
+│   ├── components/             # Reusable UI components / 可复用 UI 组件
+│   ├── hooks/                  # Custom React hooks / 自定义 Hooks
+│   ├── types/                  # Shared TypeScript types / 共享类型
+│   ├── utils/                  # Utility functions / 工具函数
+│   ├── locales/                # i18n translations / 国际化翻译
+│   ├── App.tsx                 # Main UI composition / 主界面组合
+│   ├── App.css                 # Dark mode styling / 暗黑主题样式
+│   └── main.tsx                # Entry point / 入口
+├── src-tauri/                  # Rust backend
 │   ├── src/
-│   │   └── lib.rs          # Core logic: auto-hide animations, multi-monitor support, tray icon, single-instance enforcement
-│   ├── Cargo.toml          # Rust dependencies
-│   ├── tauri.conf.json     # Window config: 64px wide, transparent, frameless, always-on-top
-│   └── ...                 # Icons, assets, etc.
+│   │   ├── lib.rs              # Entry: plugin setup, tray, invoke handler / 入口
+│   │   ├── state.rs            # Global atomic variables / 全局原子变量
+│   │   ├── monitor.rs          # Mouse & screen utilities / 鼠标与屏幕工具
+│   │   ├── inject.rs           # JS injection constant / JS 注入常量
+│   │   ├── animation.rs        # Auto-hide & slide threads / 自动隐藏与滑动线程
+│   │   ├── window.rs           # Window management commands / 窗口管理命令
+│   │   └── commands.rs         # Misc commands + single-instance lock / 杂项命令
+│   ├── inject/
+│   │   └── navbar.js           # Floating nav bar script / 悬浮导航栏脚本
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   └── ...
 ├── release/
-│   └── ToriSidebar.exe     # The finished product. Double-click and go.
-└── README.md               # You're reading it right now
+│   └── ToriSidebar.exe         # The finished product. Double-click and go. / 成品，双击即用
+└── README.md
 ```
 
 ---
