@@ -5,7 +5,7 @@ use tauri::{
 use tauri::webview::PageLoadEvent;
 
 use crate::inject::INJECT_JS;
-use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
+use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area, diag_log};
 use crate::state::*;
 
 // ------------------------------------------------------------------
@@ -77,6 +77,13 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         height: height as u32,
     })
     .map_err(|e| e.to_string())?;
+    // Read back actual position for diagnostic
+    if let Ok(actual) = bar.outer_position() {
+        diag_log(&format!(
+            "position_bar DONE: intended=({}, {}) actual=({}, {}) is_left={} width={}",
+            x, y, actual.x, actual.y, is_left, bar_width
+        ));
+    }
     // Clear explicit target so animation thread re-derives from visibility state
     BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
     Ok(())

@@ -1,8 +1,58 @@
 use tauri::AppHandle;
-use winapi::shared::windef::POINT;
+use winapi::shared::windef::{POINT, RECT, HMONITOR};
+use winapi::shared::minwindef::{LPARAM, BOOL, TRUE};
 use winapi::um::winuser::{
     GetCursorPos, MonitorFromPoint, GetMonitorInfoW, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    EnumDisplayMonitors,
 };
+
+/// Diagnostic helper: write a line to %TEMP%\torisidebar_edge_diag.log
+pub fn diag_log(msg: &str) {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    let path = std::env::temp_dir().join("torisidebar_edge_diag.log");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64();
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
+        let _ = writeln!(f, "[{:.3}] {}", now, msg);
+    }
+}
+
+/// Callback data for EnumDisplayMonitors
+struct EnumData {
+    min_left: i32,
+    max_right: i32,
+}
+
+unsafe extern "system" fn enum_monitor_proc(hmon: HMONITOR, _hdc: *mut winapi::shared::windef::HDC__, _lprc: *mut RECT, lparam: LPARAM) -> BOOL {
+    let data = &mut *(lparam as *mut EnumData);
+    let mut info: MONITORINFO = std::mem::zeroed();
+    info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+    if GetMonitorInfoW(hmon, &mut info) != 0 {
+        let left = info.rcMonitor.left;
+        let right = info.rcMonitor.right;
+        diag_log(&format!("WinAPI monitor: rcMonitor=({}, {}, {}, {})", left, info.rcMonitor.top, right, info.rcMonitor.bottom));
+        if left < data.min_left { data.min_left = left; }
+        if right > data.max_right { data.max_right = right; }
+    }
+    TRUE
+}
+
+/// Enumerate all displays via raw WinAPI and return (min_left, max_right) from rcMonitor.
+pub fn get_display_bounds_winapi() -> (i32, i32) {
+    let mut data = EnumData { min_left: 0, max_right: 0 };
+    unsafe {
+        EnumDisplayMonitors(
+            std::ptr::null_mut(),
+            std::ptr::null(),
+            Some(enum_monitor_proc),
+            &mut data as *mut _ as LPARAM,
+        );
+    }
+    (data.min_left, data.max_right)
+}
 
 /// Get global mouse position via WinAPI.
 pub fn get_mouse_pos() -> Option<(i32, i32)> {
@@ -86,27 +136,36 @@ pub fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32,
     }
 }
 
-/// Find the leftmost **physical** edge across all available monitors,
-/// then shift 1 px outward to compensate for the Windows 11 invisible
-/// border that sits outside the client area.  This makes the WebView
-/// content truly flush with the screen bezel.
+/// Find the leftmost physical edge across all available monitors.
+/// Compares Tauri API vs WinAPI and logs both for diagnostics.
 pub fn get_leftmost_monitor_left(app_handle: &tauri::AppHandle) -> i32 {
-    let mut min_left: i32 = 0;
+    let mut min_left_tauri: i32 = 0;
     if let Ok(monitors) = app_handle.available_monitors() {
-        for monitor in monitors {
+        for (i, monitor) in monitors.iter().enumerate() {
             let left = monitor.position().x;
-            if left < min_left {
-                min_left = left;
+            let right = monitor.position().x + monitor.size().width as i32;
+            diag_log(&format!(
+                "Tauri monitor[{}]: position=({}, {}) size=({}x{})  => left={} right={}",
+                i, monitor.position().x, monitor.position().y,
+                monitor.size().width, monitor.size().height,
+                left, right
+            ));
+            if left < min_left_tauri {
+                min_left_tauri = left;
             }
         }
     }
-    min_left - 1
+    let (min_left_winapi, max_right_winapi) = get_display_bounds_winapi();
+    diag_log(&format!(
+        "COMPARE tauri_left={}  winapi_left={}  tauri_right={}  winapi_right={}",
+        min_left_tauri, min_left_winapi,
+        get_rightmost_monitor_right_tauri(app_handle), max_right_winapi
+    ));
+    // Use WinAPI value (more authoritative on Windows) without compensation
+    min_left_winapi
 }
 
-/// Find the rightmost **physical** edge across all available monitors,
-/// then shift 1 px outward to compensate for the Windows 11 invisible
-/// border that sits outside the client area.
-pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
+fn get_rightmost_monitor_right_tauri(app_handle: &tauri::AppHandle) -> i32 {
     let mut max_right: i32 = 0;
     if let Ok(monitors) = app_handle.available_monitors() {
         for monitor in monitors {
@@ -116,5 +175,11 @@ pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
             }
         }
     }
-    max_right + 1
+    max_right
+}
+
+/// Find the rightmost physical edge across all available monitors.
+pub fn get_rightmost_monitor_right(app_handle: &tauri::AppHandle) -> i32 {
+    let (_min_left, max_right) = get_display_bounds_winapi();
+    max_right
 }
