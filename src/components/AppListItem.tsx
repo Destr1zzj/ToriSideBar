@@ -7,7 +7,6 @@ interface AppListItemProps {
   app: AppItem;
   isActive: boolean;
   isDragging: boolean;
-  isDragOver: boolean;
   style?: React.CSSProperties;
   onMouseDown: () => void;
   onClose: (app: AppItem, e: React.MouseEvent) => void;
@@ -17,7 +16,6 @@ export function AppListItem({
   app,
   isActive,
   isDragging,
-  isDragOver,
   style,
   onMouseDown,
   onClose,
@@ -26,9 +24,7 @@ export function AppListItem({
 
   return (
     <div
-      className={`app-item-wrapper ${isDragging ? "dragging" : ""} ${
-        isDragOver ? "drag-over" : ""
-      }`}
+      className={`app-item-wrapper ${isDragging ? "dragging" : ""}`}
       style={style}
       onMouseDown={onMouseDown}
     >

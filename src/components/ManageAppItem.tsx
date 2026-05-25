@@ -8,7 +8,6 @@ interface ManageAppItemProps {
   index: number;
   isActive: boolean;
   isDragging: boolean;
-  isDragOver: boolean;
   style?: React.CSSProperties;
   onRemove: (id: string) => void;
   onDragStart: (index: number) => void;
@@ -19,7 +18,6 @@ export function ManageAppItem({
   index,
   isActive,
   isDragging,
-  isDragOver,
   style,
   onRemove,
   onDragStart,
@@ -33,9 +31,7 @@ export function ManageAppItem({
 
   return (
     <div
-      className={`app-item-wrapper manage-mode ${
-        isDragging ? "dragging" : ""
-      } ${isDragOver ? "drag-over" : ""}`}
+      className={`app-item-wrapper manage-mode ${isDragging ? "dragging" : ""}`}
       style={style}
       data-id={app.id}
     >

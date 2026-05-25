@@ -37,6 +37,7 @@ export function useDragSort(
   const hasMovedRef = useRef(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const stepRef = useRef(50); // item height + gap, measured on drag start
+  const origRectsRef = useRef<DOMRect[]>([]); // original rects before any transform
 
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
@@ -46,11 +47,14 @@ export function useDragSort(
     invoke("set_dragging", { dragging: true }).catch(() => {});
 
     // Measure the exact vertical step (item height + flex gap)
-    if (containerRef.current && containerRef.current.children.length >= 2) {
-      const c = containerRef.current.children;
-      const r0 = (c[0] as HTMLElement).getBoundingClientRect();
-      const r1 = (c[1] as HTMLElement).getBoundingClientRect();
-      stepRef.current = r1.top - r0.top;
+    // and record original rects so mouse-to-index mapping stays accurate
+    // even after other items are shifted by transforms.
+    if (containerRef.current) {
+      const children = Array.from(containerRef.current.children) as HTMLElement[];
+      origRectsRef.current = children.map((el) => el.getBoundingClientRect());
+      if (children.length >= 2) {
+        stepRef.current = origRectsRef.current[1].top - origRectsRef.current[0].top;
+      }
     }
 
     setState({ draggingIndex: index, dragOverIndex: null, mouseOffset: 0 });
@@ -77,30 +81,15 @@ export function useDragSort(
         startPosRef.current = { x: e.clientX, y: e.clientY };
       }
 
-      const children = Array.from(
-        containerRef.current.children
-      ) as HTMLElement[];
-      if (children.length === 0) return;
+      const rects = origRectsRef.current;
+      if (rects.length === 0) return;
 
-      let targetIndex: number | null = null;
-
-      // Find which item the mouse is currently over.
-      // Skip the dragged item because its visual position is offset by transform.
-      for (let i = 0; i < children.length; i++) {
-        if (i === stateRef.current.draggingIndex) continue;
-        const rect = children[i].getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        if (e.clientY < midY) {
-          targetIndex = i;
-          break;
-        }
-      }
-
-      // If below all mid-points, target is the last item
-      if (targetIndex === null) {
-        targetIndex = children.length - 1;
-      }
-
+      // Use the original (un-transformed) positions to compute the target slot.
+      // relativeY = how far below the first item's original top the mouse is.
+      // Rounding by step gives stable boundaries between slots.
+      const firstTop = rects[0].top;
+      const relativeY = e.clientY - firstTop;
+      let targetIndex = Math.round(relativeY / stepRef.current);
       targetIndex = Math.max(0, Math.min(targetIndex, itemCount - 1));
 
       if (targetIndex !== stateRef.current.dragOverIndex) {
