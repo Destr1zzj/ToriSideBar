@@ -38,19 +38,12 @@ Too impatient to read? I respect that.
 
 | Feature | Description / 描述 |
 |---------|--------------------|
-| 📥 **Edge Bar Import** | One-click import your custom apps from Edge sidebar (Stable / Beta / Dev / Canary, all profiles). 一键从 Edge 侧边栏导入自定义应用（支持正式版 / Beta / Dev / Canary 及所有用户配置）。 |
-| 🖱️ **Drag-to-Sort** | Drag icons to reorder apps directly — no manage panel needed. 直接拖动图标排序，无需打开管理面板。 |
-| ✨ **Live Drag Animation** | Dragged item follows cursor with scale-up; others slide out of the way. 被拖动项放大跟随光标，其他项平滑让位。 |
-| 📜 **Auto-Scroll List** | List auto-scrolls when dragging near top/bottom edges. 靠近顶部/底部边缘时列表自动滚动。 |
+| 📥 **Edge Bar Import** | One-click import your custom apps from Edge sidebar (all versions & profiles). 一键从 Edge 侧边栏导入自定义应用（支持所有版本及用户配置）。 |
 | 🖥️ **Multi-Monitor** | Bar teleports smoothly between monitors as you move the mouse. 鼠标跨显示器时边栏平滑跟随。 |
-| 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
-| ➕ **Add Custom Apps** | Type a URL, pick a favicon or random emoji, done. 输入网址，选一个图标或随机 emoji，搞定。 |
-| 🛠️ **Manage Mode** | Expand the bar to adjust trigger width, reset apps, or import from Edge. 展开边栏调整触发宽度、重置应用或从 Edge 导入。 |
-| 👁️ **Auto-Hide** | Sidebar hides when you're not looking, slides out when you are. 你不看它的时候它藏起来，你看它的时候它出现。 |
-| 🧭 **Floating Nav Bar** | Every app window gets a mini nav bar: back, reload, open in browser, close. 每个应用窗口自带悬浮导航栏：返回、刷新、浏览器打开、关闭。 |
-| 🔙 **Smart Back Button** | Back button auto-hides when `history.length <= 1`. 历史记录只有一页时自动隐藏返回按钮。 |
-| 🗂️ **Child Windows** | Same-domain links open in a child window instead of a new browser tab. 同域链接在子窗口打开，不弹浏览器标签页。 |
+| 🖱️ **Drag-to-Sort** | Drag icons to reorder apps directly — no manage panel needed. 直接拖动图标排序，无需打开管理面板。 |
+| 🧭 **Floating Nav Bar** | Every app window gets a mini nav bar: back, reload, open in browser, close. 每个应用窗口自带悬浮导航栏。 |
 | 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
+| 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
 
 ---
@@ -227,7 +220,7 @@ npm run tauri dev
 
 # 3. Build release binary
 npm run tauri build
-# Output: src-tauri/target/release/edge-sidebar.exe
+# Output: src-tauri/target/release/torisidebar.exe
 ```
 
 Requires Node.js + Rust toolchain. Windows 10/11 ships with WebView2 Runtime, so no extra installs needed.

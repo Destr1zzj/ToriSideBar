@@ -1,5 +1,5 @@
 [package]
-name = "edge-sidebar"
+name = "torisidebar"
 version = "0.3.0"
 description = "Edge Sidebar Replacement"
 authors = ["you"]
