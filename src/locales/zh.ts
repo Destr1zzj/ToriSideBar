@@ -27,4 +27,10 @@ export const zh: Translations = {
   english: "English",
   chinese: "中文",
   dragToSort: "拖动排序",
+  importEdgeApps: "从 Edge 导入",
+  importEdgeAppsTitle: "从 Edge Bar 导入",
+  loading: "加载中...",
+  noEdgeApps: "Edge Bar 中未找到自定义应用。",
+  selectAll: "全选",
+  import: "导入",
 };

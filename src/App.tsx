@@ -9,6 +9,7 @@ import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
 import { AddAppModal } from "./components/AddAppModal";
 import { ExitConfirmModal } from "./components/ExitConfirmModal";
+import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
 import "./App.css";
@@ -22,6 +23,7 @@ export default function App() {
   const [isManaging, setIsManaging] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showImportEdge, setShowImportEdge] = useState(false);
 
   // ESC handler
   useEffect(() => {
@@ -140,6 +142,18 @@ export default function App() {
     }
   }, [isManaging]);
 
+  const openImportEdgeModal = useCallback(async () => {
+    await invoke("expand_bar").catch(() => {});
+    setShowImportEdge(true);
+  }, []);
+
+  const closeImportEdgeModal = useCallback(() => {
+    setShowImportEdge(false);
+    if (!isManaging) {
+      invoke("collapse_bar").catch(() => {});
+    }
+  }, [isManaging]);
+
   return (
     <div className="sidebar">
       {!isManaging && (
@@ -196,6 +210,9 @@ export default function App() {
           <button className="manage-reset-btn" onClick={resetApps}>
             {t("reset")}
           </button>
+          <button className="manage-import-btn" onClick={openImportEdgeModal}>
+            {t("importEdgeApps")}
+          </button>
         </div>
       )}
 
@@ -233,6 +250,16 @@ export default function App() {
         <ExitConfirmModal
           onCancel={() => setShowExitConfirm(false)}
           onConfirm={() => invoke("exit_app").catch(() => {})}
+        />
+      )}
+
+      {showImportEdge && (
+        <ImportEdgeAppsModal
+          onClose={closeImportEdgeModal}
+          onImport={(apps) => {
+            apps.forEach((app) => addApp(app));
+            closeImportEdgeModal();
+          }}
         />
       )}
     </div>

@@ -76,6 +76,81 @@ pub async fn sync_language(app: AppHandle, lang: String) -> Result<(), String> {
 }
 
 // ------------------------------------------------------------------
+// Read Edge Bar user-generated apps from Edge Preferences
+// ------------------------------------------------------------------
+
+#[derive(serde::Serialize)]
+pub struct EdgeAppInfo {
+    pub title: String,
+    pub url: String,
+    pub icon_url: Option<String>,
+}
+
+#[tauri::command]
+pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
+    let local_app_data =
+        std::env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA not found".to_string())?;
+
+    let prefs_path = std::path::PathBuf::from(local_app_data)
+        .join("Microsoft")
+        .join("Edge")
+        .join("User Data")
+        .join("Default")
+        .join("Preferences");
+
+    let content = std::fs::read_to_string(&prefs_path)
+        .map_err(|e| format!("Failed to read Edge Preferences: {}", e))?;
+
+    let prefs: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse Preferences: {}", e))?;
+
+    let user_generated = prefs
+        .get("browser")
+        .and_then(|b| b.get("hub_app_preferences"))
+        .and_then(|h| h.get("user_generated"))
+        .and_then(|u| u.as_object())
+        .ok_or_else(|| "No user_generated apps found in Edge Preferences".to_string())?;
+
+    let mut apps = Vec::new();
+    for (_id, value) in user_generated {
+        if let Some(obj) = value.as_object() {
+            let url = obj
+                .get("url")
+                .and_then(|u| u.as_str())
+                .unwrap_or("")
+                .to_string();
+            if url.is_empty() {
+                continue;
+            }
+
+            let url_for_parse = if url.starts_with("http://") || url.starts_with("https://") {
+                url.clone()
+            } else {
+                format!("https://{}", url)
+            };
+
+            let title = url::Url::parse(&url_for_parse)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            let icon_url = obj
+                .get("icon_url")
+                .and_then(|i| i.as_str())
+                .map(|s| s.to_string());
+
+            apps.push(EdgeAppInfo {
+                title,
+                url: url_for_parse,
+                icon_url,
+            });
+        }
+    }
+
+    Ok(apps)
+}
+
+// ------------------------------------------------------------------
 // Single-instance guard (Windows)
 // ------------------------------------------------------------------
 

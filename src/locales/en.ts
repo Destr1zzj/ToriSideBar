@@ -25,6 +25,12 @@ export const en = {
   english: "English",
   chinese: "中文",
   dragToSort: "Drag to sort",
+  importEdgeApps: "Import from Edge",
+  importEdgeAppsTitle: "Import from Edge Bar",
+  loading: "Loading...",
+  noEdgeApps: "No custom apps found in Edge Bar.",
+  selectAll: "Select All",
+  import: "Import",
 };
 
 export type Translations = typeof en;
