@@ -268,12 +268,12 @@ pub async fn close_app_window(app: AppHandle, label: String) -> Result<(), Strin
 }
 
 /// Hide a specific app window by label (same effect as toggling it off).
+/// Does NOT emit app-closed so the active indicator stays lit.
 #[tauri::command]
 pub async fn minimize_app_window(app: AppHandle, label: String) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(&label) {
         window.hide().map_err(|e| e.to_string())?;
     }
-    let _ = app.emit("app-closed", label);
     Ok(())
 }
 
