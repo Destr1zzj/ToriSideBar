@@ -76,6 +76,34 @@ pub async fn sync_language(app: AppHandle, lang: String) -> Result<(), String> {
 }
 
 // ------------------------------------------------------------------
+// Bar position (left / right)
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn set_bar_position(position: String) {
+    let val = if position == "left" { 0u8 } else { 1u8 };
+    crate::state::BAR_POSITION.store(val, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub fn get_bar_position() -> String {
+    match crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) {
+        0 => "left".to_string(),
+        _ => "right".to_string(),
+    }
+}
+
+// ------------------------------------------------------------------
+// Toggle bar visible / hidden
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn toggle_bar_visible() {
+    let current = crate::state::BAR_TARGET_VISIBLE.load(std::sync::atomic::Ordering::SeqCst);
+    crate::state::BAR_TARGET_VISIBLE.store(!current, std::sync::atomic::Ordering::SeqCst);
+}
+
+// ------------------------------------------------------------------
 // Read Edge Bar user-generated apps from Edge Preferences
 // ------------------------------------------------------------------
 

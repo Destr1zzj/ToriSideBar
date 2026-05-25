@@ -37,13 +37,17 @@ fn remove_from_child_map(child_label: &str) {
 // Commands
 // ------------------------------------------------------------------
 
-/// Position the bar window at the right edge, respecting taskbar.
+/// Position the bar window at the configured edge, respecting taskbar.
 #[tauri::command]
 pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let (wx, wy, ww, wh) = get_work_area(&bar);
     let bar_width = 64i32;
-    let x = wx + ww - bar_width;
+    let x = if crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+        wx // left edge
+    } else {
+        wx + ww - bar_width // right edge
+    };
     let y = wy;
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
@@ -61,7 +65,8 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let (wx, wy, ww, wh) = get_work_area(&bar);
     let expanded = 280i32;
-    let x = wx + ww - expanded;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let x = if is_left { wx } else { wx + ww - expanded };
     bar.set_position(PhysicalPosition { x, y: wy })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
@@ -80,7 +85,8 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let (wx, wy, ww, wh) = get_work_area(&bar);
     let narrow = 64i32;
-    let x = wx + ww - narrow;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let x = if is_left { wx } else { wx + ww - narrow };
     bar.set_position(PhysicalPosition { x, y: wy })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
@@ -146,7 +152,12 @@ pub async fn toggle_app_window(
 
     let app_width: u32 = 520;
     let app_height: u32 = bar_size.height;
-    let app_x: i32 = bar_pos.x - app_width as i32;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let app_x: i32 = if is_left {
+        bar_pos.x + bar_size.width as i32
+    } else {
+        bar_pos.x - app_width as i32
+    };
     let app_y: i32 = bar_pos.y;
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
@@ -264,7 +275,12 @@ pub async fn open_child_window(
 
     let child_width: u32 = 480;
     let child_height: u32 = parent_size.height;
-    let child_x: i32 = parent_pos.x - child_width as i32;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let child_x: i32 = if is_left {
+        parent_pos.x + parent_size.width as i32
+    } else {
+        parent_pos.x - child_width as i32
+    };
     let child_y: i32 = parent_pos.y;
 
     // Boundary protection: use parent's monitor, not mouse position.

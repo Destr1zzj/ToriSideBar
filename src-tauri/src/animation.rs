@@ -6,7 +6,9 @@ use tauri::{AppHandle, Manager, PhysicalPosition};
 use crate::monitor::{get_mouse_monitor_work_area, get_mouse_pos};
 use crate::state::*;
 
-/// Animation thread: smoothly slides the bar in/out from the right edge.
+const BAR_WIDTH: i32 = 64;
+
+/// Animation thread: smoothly slides the bar in/out from the configured edge.
 /// Runs at ~60fps (16ms interval).
 pub fn animate_bar(app_handle: AppHandle) {
     thread::spawn(move || {
@@ -33,6 +35,8 @@ pub fn animate_bar(app_handle: AppHandle) {
                 continue;
             }
 
+            let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
+            let screen_left = BAR_SCREEN_LEFT.load(Ordering::SeqCst);
             let screen_right = BAR_SCREEN_RIGHT.load(Ordering::SeqCst);
             let screen_top = BAR_SCREEN_TOP.load(Ordering::SeqCst);
             if screen_right == 0 {
@@ -44,15 +48,15 @@ pub fn animate_bar(app_handle: AppHandle) {
             // - Otherwise derive from visibility state
             let target_x = {
                 let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
-                if explicit > 0 {
+                if explicit != 0 {
                     // Clear explicit target after reading once
                     BAR_TARGET_X.store(0, Ordering::SeqCst);
                     explicit
                 } else {
                     if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
-                        screen_right - 64
+                        if is_left { screen_left } else { screen_right - BAR_WIDTH }
                     } else {
-                        screen_right
+                        if is_left { screen_left - BAR_WIDTH } else { screen_right }
                     }
                 }
             };
@@ -103,12 +107,22 @@ pub fn animate_bar(app_handle: AppHandle) {
                 let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
 
                 // Show window as soon as any part is on-screen
-                if current_x < screen_right {
+                let partially_on_screen = if is_left {
+                    current_x + BAR_WIDTH > screen_left
+                } else {
+                    current_x < screen_right
+                };
+                if partially_on_screen {
                     let _ = bar.show();
                 }
 
                 // Fully off-screen and target is hidden -> hide() to stop intercepting mouse
-                if current_x >= screen_right - 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
+                let fully_off_screen = if is_left {
+                    current_x + BAR_WIDTH <= screen_left + 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                } else {
+                    current_x >= screen_right - 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                };
+                if fully_off_screen {
                     let _ = bar.hide();
                 }
             } else {
@@ -117,11 +131,15 @@ pub fn animate_bar(app_handle: AppHandle) {
                 if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && !is_visible {
                     let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
                     let _ = bar.show();
-                } else if !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
-                    && is_visible
-                    && current_x >= screen_right - 1
-                {
-                    let _ = bar.hide();
+                } else if !BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && is_visible {
+                    let fully_off = if is_left {
+                        current_x + BAR_WIDTH <= screen_left + 1
+                    } else {
+                        current_x >= screen_right - 1
+                    };
+                    if fully_off {
+                        let _ = bar.hide();
+                    }
                 }
             }
         }
@@ -168,8 +186,9 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             };
 
             // Get the monitor where the mouse currently is
-            let (_work_left, work_top, work_right, _work_bottom) =
+            let (work_left, work_top, work_right, _work_bottom) =
                 get_mouse_monitor_work_area(&app_handle);
+            BAR_SCREEN_LEFT.store(work_left, Ordering::SeqCst);
             BAR_SCREEN_RIGHT.store(work_right, Ordering::SeqCst);
             BAR_SCREEN_TOP.store(work_top, Ordering::SeqCst);
 
@@ -201,9 +220,14 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 }
             }
 
+            let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
             let trigger = TRIGGER_WIDTH.load(Ordering::SeqCst) as i32;
-            // Trigger zone is measured from the monitor's right edge
-            let near_edge = mouse.0 >= work_right - trigger;
+            // Trigger zone is measured from the monitor's configured edge
+            let near_edge = if is_left {
+                mouse.0 <= work_left + trigger
+            } else {
+                mouse.0 >= work_right - trigger
+            };
 
             let trigger_active = TRIGGER_ACTIVE.load(Ordering::SeqCst);
             let should_show = if trigger_active {

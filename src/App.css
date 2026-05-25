@@ -674,6 +674,39 @@ body {
   color: #38bdf8;
 }
 
+/* Shortcut input */
+.shortcut-row {
+  display: flex;
+  gap: 6px;
+}
+
+.shortcut-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e4e4e7;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.shortcut-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.shortcut-save-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0ea5e9;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 /* Import Edge Apps Modal */
 .import-modal {
   width: min(320px, calc(100% - 16px));

@@ -32,6 +32,11 @@ export const en = {
   selectAll: "Select All",
   deselectAll: "Deselect All",
   import: "Import",
+  barPosition: "Bar Position",
+  left: "Left",
+  right: "Right",
+  globalShortcut: "Global Shortcut",
+  save: "Save",
 };
 
 export type Translations = typeof en;

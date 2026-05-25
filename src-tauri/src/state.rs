@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU8};
 use std::sync::{Mutex, LazyLock};
 
 /// Whether the settings panel is open (pauses auto-hide animation).
@@ -20,8 +20,14 @@ pub static BAR_TARGET_X: AtomicI32 = AtomicI32::new(0);
 /// Current monitor's work_area right edge (set by decision thread, read by animation thread).
 pub static BAR_SCREEN_RIGHT: AtomicI32 = AtomicI32::new(0);
 
+/// Current monitor's work_area left edge (set by decision thread, read by animation thread).
+pub static BAR_SCREEN_LEFT: AtomicI32 = AtomicI32::new(0);
+
 /// Current monitor's work_area top edge (set by decision thread, read by animation thread).
 pub static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
+
+/// Bar position: 0 = left edge, 1 = right edge.
+pub static BAR_POSITION: AtomicU8 = AtomicU8::new(1);
 
 /// When true, the auto-hide thread is paused so the bar stays visible
 /// during drag-to-sort operations.

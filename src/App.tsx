@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { useI18n } from "./i18n";
 import { useApps } from "./hooks/useApps";
 import { useActiveApps } from "./hooks/useActiveApps";
 import { useTriggerWidth } from "./hooks/useTriggerWidth";
+import { useSettings } from "./hooks/useSettings";
 import { useDragSort } from "./hooks/useDragSort";
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
 import { AddAppModal } from "./components/AddAppModal";
-
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
@@ -19,11 +20,37 @@ export default function App() {
   const { apps, addApp, removeApp, reorderApps, resetApps } = useApps();
   const { activeApps, addActive, removeActive, clearActive } = useActiveApps();
   const { triggerWidth, setTriggerWidth } = useTriggerWidth();
+  const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut } = useSettings();
 
   const [isManaging, setIsManaging] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-
   const [showImportEdge, setShowImportEdge] = useState(false);
+  const [shortcutInput, setShortcutInput] = useState(globalShortcut);
+
+  // Global shortcut registration
+  useEffect(() => {
+    let activeShortcut = globalShortcut;
+    const registerShortcut = async () => {
+      try {
+        await register(activeShortcut, (event) => {
+          if (event.state === "Pressed") {
+            invoke("toggle_bar_visible").catch(() => {});
+          }
+        });
+      } catch {
+        // Shortcut may be taken by another app; ignore silently
+      }
+    };
+    registerShortcut();
+    return () => {
+      unregister(activeShortcut).catch(() => {});
+    };
+  }, [globalShortcut]);
+
+  // Re-position bar when position changes
+  useEffect(() => {
+    invoke("position_bar").catch(() => {});
+  }, [barPosition]);
 
   // ESC handler
   useEffect(() => {
@@ -193,6 +220,41 @@ export default function App() {
 
       {isManaging && (
         <div className="manage-settings">
+          <div className="setting-row">
+            <label>{t("barPosition")}</label>
+            <div className="lang-selector">
+              <button
+                className={`lang-btn ${barPosition === "left" ? "active" : ""}`}
+                onClick={() => setBarPosition("left")}
+              >
+                {t("left")}
+              </button>
+              <button
+                className={`lang-btn ${barPosition === "right" ? "active" : ""}`}
+                onClick={() => setBarPosition("right")}
+              >
+                {t("right")}
+              </button>
+            </div>
+          </div>
+          <div className="setting-row">
+            <label>{t("globalShortcut")}</label>
+            <div className="shortcut-row">
+              <input
+                className="shortcut-input"
+                type="text"
+                placeholder="Ctrl+Shift+Space"
+                value={shortcutInput}
+                onChange={(e) => setShortcutInput(e.target.value)}
+              />
+              <button
+                className="shortcut-save-btn"
+                onClick={() => setGlobalShortcut(shortcutInput)}
+              >
+                {t("save")}
+              </button>
+            </div>
+          </div>
           <div className="setting-row">
             <label>{t("triggerWidth")}</label>
             <div className="slider-row">

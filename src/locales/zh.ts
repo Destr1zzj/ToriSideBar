@@ -34,4 +34,9 @@ export const zh: Translations = {
   selectAll: "全选",
   deselectAll: "全不选",
   import: "导入",
+  barPosition: "边栏位置",
+  left: "左侧",
+  right: "右侧",
+  globalShortcut: "全局快捷键",
+  save: "保存",
 };

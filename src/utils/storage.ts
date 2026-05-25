@@ -3,6 +3,8 @@ import type { AppItem } from "../types";
 const STORAGE_KEY = "tori-sidebar-apps";
 const ACTIVE_KEY = "tori-sidebar-active";
 const TRIGGER_KEY = "tori-sidebar-trigger";
+const POSITION_KEY = "tori-sidebar-position";
+const SHORTCUT_KEY = "tori-sidebar-shortcut";
 
 export function loadApps(): AppItem[] {
   try {
@@ -56,6 +58,30 @@ export function loadTrigger(): number {
 
 export function saveTrigger(value: number) {
   localStorage.setItem(TRIGGER_KEY, String(value));
+}
+
+export function loadBarPosition(): "left" | "right" {
+  try {
+    const stored = localStorage.getItem(POSITION_KEY);
+    if (stored === "left" || stored === "right") return stored;
+  } catch { /* ignore */ }
+  return "right";
+}
+
+export function saveBarPosition(position: "left" | "right") {
+  localStorage.setItem(POSITION_KEY, position);
+}
+
+export function loadGlobalShortcut(): string {
+  try {
+    const stored = localStorage.getItem(SHORTCUT_KEY);
+    if (stored) return stored;
+  } catch { /* ignore */ }
+  return "Ctrl+Shift+Space";
+}
+
+export function saveGlobalShortcut(shortcut: string) {
+  localStorage.setItem(SHORTCUT_KEY, shortcut);
 }
 
 export function clearAppsStorage() {
