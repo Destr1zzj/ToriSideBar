@@ -9,7 +9,7 @@ interface ManageAppItemProps {
   isActive: boolean;
   isDragging: boolean;
   isDragOver: boolean;
-  mouseOffset: number;
+  style?: React.CSSProperties;
   onRemove: (id: string) => void;
   onDragStart: (index: number) => void;
 }
@@ -20,7 +20,7 @@ export function ManageAppItem({
   isActive,
   isDragging,
   isDragOver,
-  mouseOffset,
+  style,
   onRemove,
   onDragStart,
 }: ManageAppItemProps) {
@@ -36,14 +36,7 @@ export function ManageAppItem({
       className={`app-item-wrapper manage-mode ${
         isDragging ? "dragging" : ""
       } ${isDragOver ? "drag-over" : ""}`}
-      style={
-        isDragging
-          ? {
-              transform: `translateY(${mouseOffset}px)`,
-              zIndex: 10,
-            }
-          : undefined
-      }
+      style={style}
       data-id={app.id}
     >
       <div

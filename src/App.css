@@ -73,6 +73,7 @@ body {
   justify-content: center;
   width: 60px;
   margin-left: -5px;
+  will-change: transform;
 }
 
 .app-item {

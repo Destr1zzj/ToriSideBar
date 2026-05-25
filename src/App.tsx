@@ -114,7 +114,7 @@ export default function App() {
     containerRef,
     draggingIndex,
     dragOverIndex,
-    mouseOffset,
+    getItemStyle,
     handleDragStart,
   } = useDragSort(apps.length, handleReorder, handleAppClickByIndex);
 
@@ -161,7 +161,7 @@ export default function App() {
               isActive={activeApps.has(app.label)}
               isDragging={draggingIndex === index}
               isDragOver={dragOverIndex === index}
-              mouseOffset={mouseOffset}
+              style={getItemStyle(index)}
               onRemove={handleRemoveApp}
               onDragStart={handleDragStart}
             />
@@ -172,7 +172,7 @@ export default function App() {
               isActive={activeApps.has(app.label)}
               isDragging={draggingIndex === index}
               isDragOver={dragOverIndex === index}
-              mouseOffset={mouseOffset}
+              style={getItemStyle(index)}
               onMouseDown={() => handleDragStart(index)}
               onClose={handleCloseApp}
             />

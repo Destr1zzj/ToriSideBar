@@ -11,8 +11,9 @@ const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
 /**
  * Custom drag-sort hook using mouse events.
  * Distinguishes between a "click" (tiny movement) and a "drag".
- * Returns mouseOffset so the dragged item can follow the cursor
- * via transform: translateY for a live preview animation.
+ *
+ * When dragging, the dragged item scales up and follows the cursor.
+ * Other items slide out of the way with smooth CSS transitions.
  */
 export function useDragSort(
   itemCount: number,
@@ -34,10 +35,20 @@ export function useDragSort(
   const containerRef = useRef<HTMLDivElement>(null);
   const hasMovedRef = useRef(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const stepRef = useRef(50); // item height + gap, measured on drag start
 
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
     startPosRef.current = null;
+
+    // Measure the exact vertical step (item height + flex gap)
+    if (containerRef.current && containerRef.current.children.length >= 2) {
+      const c = containerRef.current.children;
+      const r0 = (c[0] as HTMLElement).getBoundingClientRect();
+      const r1 = (c[1] as HTMLElement).getBoundingClientRect();
+      stepRef.current = r1.top - r0.top;
+    }
+
     setState({ draggingIndex: index, dragOverIndex: null, mouseOffset: 0 });
   }, []);
 
@@ -123,11 +134,55 @@ export function useDragSort(
     };
   }, [state.draggingIndex, itemCount, onReorder]);
 
+  /** Compute the inline style for each list item during drag. */
+  const getItemStyle = useCallback(
+    (index: number): React.CSSProperties => {
+      const { draggingIndex, dragOverIndex, mouseOffset } = stateRef.current;
+
+      if (draggingIndex === null) return {};
+
+      // The dragged item scales up and follows the mouse
+      if (index === draggingIndex) {
+        return {
+          transform: `translateY(${mouseOffset}px) scale(1.08)`,
+          zIndex: 10,
+          transition: "none",
+        };
+      }
+
+      if (dragOverIndex === null) return {};
+
+      // Other items slide out of the way
+      let offset = 0;
+      if (draggingIndex < dragOverIndex) {
+        // Dragging downward: items between source and target shift UP
+        if (index > draggingIndex && index <= dragOverIndex) {
+          offset = -stepRef.current;
+        }
+      } else if (draggingIndex > dragOverIndex) {
+        // Dragging upward: items between target and source shift DOWN
+        if (index >= dragOverIndex && index < draggingIndex) {
+          offset = stepRef.current;
+        }
+      }
+
+      if (offset !== 0) {
+        return {
+          transform: `translateY(${offset}px)`,
+          transition: "transform 0.2s cubic-bezier(0.2, 0, 0, 1)",
+        };
+      }
+
+      return {};
+    },
+    []
+  );
+
   return {
     containerRef,
     draggingIndex: state.draggingIndex,
     dragOverIndex: state.dragOverIndex,
-    mouseOffset: state.mouseOffset,
+    getItemStyle,
     handleDragStart,
   };
 }
