@@ -51,7 +51,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     // Left edge shifts left so content touches the bezel.
     // Right edge shifts right so content touches the bezel (trigger zone unchanged).
     const LEFT_OFFSET: i32 = 5;
-    const RIGHT_OFFSET: i32 = 4;
+    const RIGHT_OFFSET: i32 = 0;
 
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
