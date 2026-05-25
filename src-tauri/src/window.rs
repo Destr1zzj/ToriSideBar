@@ -8,6 +8,12 @@ use crate::inject::INJECT_JS;
 use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
 use crate::state::*;
 
+// WebView2 content inset compensation (pixels).
+// Windows transparent WebView2 renders with a ~6px inset on the left side
+// of the client area.  For the right bar we shift the window left so the
+// content still touches the right bezel.
+const RIGHT_OFFSET: i32 = -6;
+
 // ------------------------------------------------------------------
 // Child-window helpers
 // ------------------------------------------------------------------
@@ -47,11 +53,8 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     let is_expanded = BAR_EXPANDED.load(std::sync::atomic::Ordering::SeqCst);
     let bar_width = if is_expanded { 280i32 } else { 64i32 };
 
-    // Edge offset: WebView2 renders with a small inset inside the client area.
-    // Left edge shifts left so content touches the bezel.
-    // Right edge also shifts left so content touches the bezel (inset is on the window's left side).
-    const LEFT_OFFSET: i32 = 5;
-    const RIGHT_OFFSET: i32 = -6;
+    // Left edge is already compensated in monitor.rs (min_left - 5).
+    // Right edge uses module-level RIGHT_OFFSET.
 
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
@@ -103,7 +106,7 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (rightmost - expanded + 3, work_top, work_bottom - work_top)
+        (rightmost - expanded + RIGHT_OFFSET, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })
@@ -136,7 +139,7 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (rightmost - narrow + 3, work_top, work_bottom - work_top)
+        (rightmost - narrow + RIGHT_OFFSET, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })
