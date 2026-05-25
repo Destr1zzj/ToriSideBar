@@ -3,6 +3,19 @@ use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Manager, PhysicalPosition};
 
+pub fn log(msg: &str) {
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    let path = std::env::temp_dir().join("torisidebar_debug.log");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64();
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
+        let _ = writeln!(f, "[{:.3}] {}", now, msg);
+    }
+}
+
 use crate::monitor::{get_mouse_monitor_work_area, get_mouse_pos};
 use crate::state::*;
 
@@ -55,13 +68,17 @@ pub fn animate_bar(app_handle: AppHandle) {
                 if explicit != 0 {
                     // Clear explicit target after reading once
                     BAR_TARGET_X.store(0, Ordering::SeqCst);
+                    log(&format!("[animate] explicit target={} | current={}", explicit, current_x));
                     explicit
                 } else {
-                    if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
+                    let vis = BAR_TARGET_VISIBLE.load(Ordering::SeqCst);
+                    let tx = if vis {
                         if is_left { screen_left } else { screen_right - BAR_WIDTH }
                     } else {
                         if is_left { screen_left - BAR_WIDTH } else { screen_right }
-                    }
+                    };
+                    log(&format!("[animate] derived target={} | current={} visible={} is_left={} screen_left={} screen_right={}", tx, current_x, vis, is_left, screen_left, screen_right));
+                    tx
                 }
             };
             let target_y = screen_top;
@@ -117,6 +134,7 @@ pub fn animate_bar(app_handle: AppHandle) {
                     current_x < screen_right
                 };
                 if partially_on_screen {
+                    log(&format!("[animate] SHOW at x={}", current_x));
                     let _ = bar.show();
                 }
 
@@ -127,6 +145,7 @@ pub fn animate_bar(app_handle: AppHandle) {
                     current_x >= screen_right - 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
                 };
                 if fully_off_screen {
+                    log(&format!("[animate] HIDE at x={}", current_x));
                     let _ = bar.hide();
                 }
             } else {
@@ -230,9 +249,13 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             // For left-docked bar, use the fixed leftmost edge across all displays.
             let near_edge = if is_left {
                 let fixed_left = BAR_FIXED_LEFT.load(Ordering::SeqCst);
-                mouse.0 <= fixed_left + trigger
+                let edge_trigger = fixed_left + trigger;
+                log(&format!("[auto-hide] LEFT | mouse_x={} fixed_left={} trigger={} near_edge={}", mouse.0, fixed_left, trigger, mouse.0 <= edge_trigger));
+                mouse.0 <= edge_trigger
             } else {
-                mouse.0 >= work_right - trigger
+                let edge_trigger = work_right - trigger;
+                log(&format!("[auto-hide] RIGHT | mouse_x={} work_right={} trigger={} near_edge={}", mouse.0, work_right, trigger, mouse.0 >= edge_trigger));
+                mouse.0 >= edge_trigger
             };
 
             let trigger_active = TRIGGER_ACTIVE.load(Ordering::SeqCst);
@@ -243,10 +266,12 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             };
 
             if should_show && !was_over {
+                log(&format!("[auto-hide] SHOW | near_edge={} over_bar={} over_app={} any_app={}", near_edge, over_bar, over_app, any_app_visible));
                 TRIGGER_ACTIVE.store(true, Ordering::SeqCst);
                 BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
                 was_over = true;
             } else if !should_show && was_over {
+                log(&format!("[auto-hide] HIDE | near_edge={} over_bar={} over_app={} any_app={}", near_edge, over_bar, over_app, any_app_visible));
                 TRIGGER_ACTIVE.store(false, Ordering::SeqCst);
                 BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
                 was_over = false;
