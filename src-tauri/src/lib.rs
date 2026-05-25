@@ -1,5 +1,5 @@
 use tauri::{
-    Manager, WebviewUrl, WebviewWindowBuilder,
+    Manager, Emitter, WebviewUrl, WebviewWindowBuilder,
     PhysicalPosition, PhysicalSize,
 };
 use tauri::webview::PageLoadEvent;
@@ -157,7 +157,7 @@ const INJECT_JS: &str = r#"(function() {
     const internal = shouldOpenInternally(url);
     console.log('[Tori] window.open intercepted:', url, 'internal?', internal);
     if (internal) {
-      tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(url), title: target || document.title || '' })
+      tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(url), title: target || document.title || '', lang: _lang })
         .then(r => console.log('[Tori] open_child_window ok:', r))
         .catch(e => console.error('[Tori] open_child_window failed:', e));
       return { closed: false, close: function(){}, focus: function(){}, blur: function(){} };
@@ -186,7 +186,7 @@ const INJECT_JS: &str = r#"(function() {
       const internal = shouldOpenInternally(href);
       console.log('[Tori] link click intercepted:', href, 'target:', target, 'internal?', internal);
       if (internal) {
-        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(href), title: el.textContent || '' })
+        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(href), title: el.textContent || '', lang: _lang })
           .then(r => console.log('[Tori] open_child_window ok:', r))
           .catch(e => console.error('[Tori] open_child_window failed:', e));
       } else {
@@ -206,7 +206,7 @@ const INJECT_JS: &str = r#"(function() {
     if ((target === '_blank' || target === '_new') && action) {
       e.preventDefault();
       if (shouldOpenInternally(action)) {
-        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(action), title: '' });
+        tauriInvoke('open_child_window', { parentLabel: WINDOW_LABEL, url: resolveUrl(action), title: '', lang: _lang });
       } else {
         tauriInvoke('open_external_url', { url: resolveUrl(action) });
       }
@@ -366,6 +366,7 @@ async fn toggle_app_window(
     label: String,
     title: String,
     url: String,
+    lang: String,
 ) -> Result<bool, String> {
     // 辅助：隐藏除指定标签外的所有可见 app 窗口
     let hide_others = |exclude: &str| {
@@ -391,6 +392,8 @@ async fn toggle_app_window(
             hide_others(&label);
             existing.show().map_err(|e| e.to_string())?;
             existing.set_focus().map_err(|e| e.to_string())?;
+            let init_lang = format!(r#"localStorage.setItem('tori-sidebar-language', '{}');"#, lang);
+            let _ = existing.eval(&init_lang);
             let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
             let _ = existing.eval(&script);
             return Ok(true);
@@ -433,6 +436,8 @@ async fn toggle_app_window(
         .build()
         .map_err(|e| e.to_string())?;
 
+    let init_lang = format!(r#"localStorage.setItem('tori-sidebar-language', '{}');"#, lang);
+    let _ = _window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
     let _ = _window.eval(&script);
 
@@ -452,6 +457,7 @@ async fn close_app_window(app: tauri::AppHandle, label: String) -> Result<(), St
     if let Some(window) = app.get_webview_window(&label) {
         window.close().map_err(|e| e.to_string())?;
     }
+    let _ = app.emit("app-closed", label);
     Ok(())
 }
 
@@ -477,6 +483,7 @@ async fn close_all_app_windows(app: tauri::AppHandle) -> Result<(), String> {
     for (label, window) in app.webview_windows() {
         if label.starts_with("app-") && !label.contains("-tab-") {
             let _ = window.close();
+            let _ = app.emit("app-closed", label);
         }
     }
     Ok(())
@@ -490,6 +497,7 @@ async fn open_child_window(
     parent_label: String,
     url: String,
     title: Option<String>,
+    lang: String,
 ) -> Result<String, String> {
     println!("[Tori] open_child_window called: parent={}, url={}", parent_label, url);
 
@@ -558,6 +566,8 @@ async fn open_child_window(
 
     println!("[Tori] child window created successfully: {}", child_label);
 
+    let init_lang = format!(r#"localStorage.setItem('tori-sidebar-language', '{}');"#, lang);
+    let _ = _window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
     let _ = _window.eval(&script);
 
@@ -626,6 +636,33 @@ async fn open_external_url(url: String) -> Result<(), String> {
 #[tauri::command]
 async fn exit_app(app: tauri::AppHandle) {
     app.exit(0);
+}
+
+/// Sync language for all open app windows by updating injected nav bar titles.
+#[tauri::command]
+async fn sync_language(app: tauri::AppHandle, lang: String) -> Result<(), String> {
+    let script = format!(r#"(function() {{
+  localStorage.setItem('tori-sidebar-language', '{}');
+  const texts = {{
+    back: {{ en: 'Back', zh: '返回' }},
+    reload: {{ en: 'Reload', zh: '刷新' }},
+    openExternal: {{ en: 'Open in browser', zh: '用浏览器打开' }},
+    close: {{ en: 'Close', zh: '关闭' }},
+  }};
+  const bar = document.getElementById('__tori_nav_bar__');
+  if (!bar) return;
+  const btns = bar.querySelectorAll('button');
+  if (btns[0]) btns[0].title = texts.back['{}'] || texts.back['en'];
+  if (btns[1]) btns[1].title = texts.reload['{}'] || texts.reload['en'];
+  if (btns[2]) btns[2].title = texts.openExternal['{}'] || texts.openExternal['en'];
+  if (btns[3]) btns[3].title = texts.close['{}'] || texts.close['en'];
+}})();"#, lang, lang, lang, lang, lang);
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("app-") {
+            let _ = window.eval(&script);
+        }
+    }
+    Ok(())
 }
 
 /// Animation thread: smoothly slides the bar in/out from the right edge.
@@ -858,6 +895,7 @@ pub fn run() {
             handle_esc,
             open_external_url,
             exit_app,
+            sync_language,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

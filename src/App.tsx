@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useI18n } from "./i18n";
 import "./App.css";
 
@@ -199,6 +200,20 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const unlisten = listen<string>("app-closed", (event) => {
+      setActiveApps((prev) => {
+        if (!prev.has(event.payload)) return prev;
+        const next = new Set(prev);
+        next.delete(event.payload);
+        return next;
+      });
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isManaging) {
         // Try to close child window first
@@ -229,6 +244,7 @@ function App() {
         label: app.label,
         title: app.title,
         url: app.url,
+        lang,
       });
       setActiveApps((prev) => {
         // Only add to set when newly opened; keep visual state when hidden (background keep-alive)
@@ -462,13 +478,19 @@ function App() {
             <div className="lang-selector">
               <button
                 className={`lang-btn ${lang === "en" ? "active" : ""}`}
-                onClick={() => setLang("en")}
+                onClick={() => {
+                  setLang("en");
+                  invoke("sync_language", { lang: "en" }).catch(() => {});
+                }}
               >
                 {t("english")}
               </button>
               <button
                 className={`lang-btn ${lang === "zh" ? "active" : ""}`}
-                onClick={() => setLang("zh")}
+                onClick={() => {
+                  setLang("zh");
+                  invoke("sync_language", { lang: "zh" }).catch(() => {});
+                }}
               >
                 {t("chinese")}
               </button>
