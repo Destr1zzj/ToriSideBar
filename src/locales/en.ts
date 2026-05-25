@@ -30,6 +30,7 @@ export const en = {
   loading: "Loading...",
   noEdgeApps: "No custom apps found in Edge Bar.",
   selectAll: "Select All",
+  deselectAll: "Deselect All",
   import: "Import",
 };
 

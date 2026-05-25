@@ -739,6 +739,12 @@ body {
   flex-shrink: 0;
 }
 
+.import-app-icon.emoji {
+  font-size: 18px;
+  line-height: 20px;
+  text-align: center;
+}
+
 .import-app-info {
   min-width: 0;
   flex: 1;

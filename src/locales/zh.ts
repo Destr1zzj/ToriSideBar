@@ -32,5 +32,6 @@ export const zh: Translations = {
   loading: "加载中...",
   noEdgeApps: "Edge Bar 中未找到自定义应用。",
   selectAll: "全选",
+  deselectAll: "全不选",
   import: "导入",
 };

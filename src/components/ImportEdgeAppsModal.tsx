@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
-import { getDomain } from "../utils/favicon";
+import { getRandomEmoji } from "../utils/emoji";
 import type { AppItem } from "../types";
 
 interface EdgeAppInfo {
@@ -59,9 +59,7 @@ export function ImportEdgeAppsModal({ onClose, onImport }: ImportEdgeAppsModalPr
         label: "app-" + id,
         title: edgeApp.title,
         url: edgeApp.url,
-        icon:
-          edgeApp.icon_url ||
-          `https://www.google.com/s2/favicons?domain=${getDomain(edgeApp.url)}&sz=128`,
+        icon: getRandomEmoji(),
       };
     });
     onImport(apps);
@@ -91,18 +89,7 @@ export function ImportEdgeAppsModal({ onClose, onImport }: ImportEdgeAppsModalPr
                   <span className="import-checkbox">
                     {selected.has(index) ? "☑" : "☐"}
                   </span>
-                  <img
-                    className="import-app-icon"
-                    src={
-                      app.icon_url ||
-                      `https://www.google.com/s2/favicons?domain=${getDomain(app.url)}&sz=32`
-                    }
-                    alt=""
-                    draggable={false}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                      <span className="import-app-icon emoji">{getRandomEmoji()}</span>
                   <div className="import-app-info">
                     <div className="import-app-title">{app.title}</div>
                     <div className="import-app-url">{app.url}</div>
@@ -111,8 +98,17 @@ export function ImportEdgeAppsModal({ onClose, onImport }: ImportEdgeAppsModalPr
               ))}
             </div>
             <div className="import-actions">
-              <button className="modal-btn cancel" onClick={selectAll}>
-                {t("selectAll")}
+              <button
+                className="modal-btn cancel"
+                onClick={() => {
+                  if (selected.size === edgeApps.length) {
+                    setSelected(new Set());
+                  } else {
+                    selectAll();
+                  }
+                }}
+              >
+                {selected.size === edgeApps.length ? t("deselectAll") : t("selectAll")}
               </button>
               <button
                 className="modal-btn confirm"

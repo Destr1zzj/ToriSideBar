@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getFaviconSources } from "../utils/favicon";
+import { getRandomEmoji } from "../utils/emoji";
 
 export function FaviconOptionImg({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
@@ -18,12 +19,17 @@ interface FaviconImgProps {
 
 export function FaviconImg({ src, domain, title, className = "app-icon-img" }: FaviconImgProps) {
   const [srcIndex, setSrcIndex] = useState(0);
+  const [allFailed, setAllFailed] = useState(false);
   const allSources = getFaviconSources(domain);
   const sources = src && !allSources.includes(src)
     ? [src, ...allSources]
     : src
       ? [src, ...allSources.filter((s) => s !== src)]
       : allSources;
+
+  if (allFailed) {
+    return <span className={`${className} app-icon-text`}>{getRandomEmoji()}</span>;
+  }
 
   return (
     <img
@@ -35,6 +41,8 @@ export function FaviconImg({ src, domain, title, className = "app-icon-img" }: F
       onError={() => {
         if (srcIndex < sources.length - 1) {
           setSrcIndex(srcIndex + 1);
+        } else {
+          setAllFailed(true);
         }
       }}
     />
