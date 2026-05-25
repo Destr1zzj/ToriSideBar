@@ -142,8 +142,10 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 None => continue,
             };
 
-            // Settings panel open: force visible
-            if BAR_EXPANDED.load(Ordering::SeqCst) {
+            // Settings panel open or drag-sort in progress: force visible
+            if BAR_EXPANDED.load(Ordering::SeqCst)
+                || DRAGGING.load(Ordering::SeqCst)
+            {
                 if !was_over {
                     BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
                     was_over = true;

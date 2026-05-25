@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 interface DragSortState {
   draggingIndex: number | null;
@@ -40,6 +41,9 @@ export function useDragSort(
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
     startPosRef.current = null;
+
+    // Tell the Rust backend to pause auto-hide while dragging
+    invoke("set_dragging", { dragging: true }).catch(() => {});
 
     // Measure the exact vertical step (item height + flex gap)
     if (containerRef.current && containerRef.current.children.length >= 2) {
@@ -121,6 +125,7 @@ export function useDragSort(
       setState({ draggingIndex: null, dragOverIndex: null, mouseOffset: 0 });
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      invoke("set_dragging", { dragging: false }).catch(() => {});
     };
 
     document.body.style.cursor = "grabbing";
@@ -131,6 +136,7 @@ export function useDragSort(
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      invoke("set_dragging", { dragging: false }).catch(() => {});
     };
   }, [state.draggingIndex, itemCount, onReorder]);
 

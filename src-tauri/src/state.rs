@@ -23,6 +23,10 @@ pub static BAR_SCREEN_RIGHT: AtomicI32 = AtomicI32::new(0);
 /// Current monitor's work_area top edge (set by decision thread, read by animation thread).
 pub static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
 
+/// When true, the auto-hide thread is paused so the bar stays visible
+/// during drag-to-sort operations.
+pub static DRAGGING: AtomicBool = AtomicBool::new(false);
+
 /// Parent -> child window label mapping.
 pub static CHILD_WINDOWS: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));

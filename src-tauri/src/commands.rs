@@ -19,6 +19,15 @@ pub async fn get_trigger_width() -> Result<u32, String> {
 }
 
 // ------------------------------------------------------------------
+// Dragging state (pauses auto-hide)
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn set_dragging(dragging: bool) {
+    crate::state::DRAGGING.store(dragging, std::sync::atomic::Ordering::SeqCst);
+}
+
+// ------------------------------------------------------------------
 // External URL / Exit / Language sync
 // ------------------------------------------------------------------
 

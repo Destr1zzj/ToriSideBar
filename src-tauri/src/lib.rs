@@ -30,6 +30,7 @@ pub fn run() {
             window::open_child_window,
             window::close_child_windows,
             window::handle_esc,
+            commands::set_dragging,
             commands::open_external_url,
             commands::exit_app,
             commands::sync_language,
