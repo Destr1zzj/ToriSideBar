@@ -9,7 +9,7 @@
     back: { en: 'Back', zh: '返回' },
     reload: { en: 'Reload', zh: '刷新' },
     openExternal: { en: 'Open in browser', zh: '用浏览器打开' },
-    minimize: { en: 'Minimize', zh: '最小化' },
+    minimize: { en: 'Hide', zh: '隐藏' },
     close: { en: 'Close', zh: '关闭' },
   };
 
