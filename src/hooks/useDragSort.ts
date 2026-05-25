@@ -8,8 +8,8 @@ interface DragSortState {
 }
 
 const MOVE_THRESHOLD = 5; // px: drag starts after moving this far
-const SCROLL_MARGIN = 24; // px from container edge to trigger auto-scroll
-const SCROLL_SPEED = 10;  // px per frame
+const SCROLL_MARGIN = 28; // px from container edge to trigger auto-scroll
+const SCROLL_SPEED = 4;   // px per frame
 
 /**
  * Custom drag-sort hook using mouse events.
@@ -52,6 +52,19 @@ export function useDragSort(
     }
   }, []);
 
+  /** Compute which slot the mouse is hovering over. */
+  const computeTargetIndex = useCallback((mouseY: number): number => {
+    const container = containerRef.current;
+    const rects = origRectsRef.current;
+    if (!container || rects.length === 0) return 0;
+
+    const scrollDelta = container.scrollTop - origScrollTopRef.current;
+    const firstTop = rects[0].top;
+    const relativeY = mouseY - firstTop + scrollDelta;
+    let targetIndex = Math.round(relativeY / stepRef.current);
+    return Math.max(0, Math.min(targetIndex, itemCount - 1));
+  }, [itemCount]);
+
   const startAutoScroll = useCallback(() => {
     if (autoScrollRafRef.current !== null) return;
 
@@ -64,18 +77,36 @@ export function useDragSort(
 
       const rect = container.getBoundingClientRect();
       const mouseY = lastMouseYRef.current;
+      let scrolled = false;
 
       if (mouseY < rect.top + SCROLL_MARGIN) {
         container.scrollTop -= SCROLL_SPEED;
+        scrolled = true;
       } else if (mouseY > rect.bottom - SCROLL_MARGIN) {
         container.scrollTop += SCROLL_SPEED;
+        scrolled = true;
+      }
+
+      if (scrolled) {
+        // Recompute target index and mouse offset after scrolling so the
+        // dragged item and drop target stay aligned with the cursor.
+        const targetIndex = computeTargetIndex(mouseY);
+        const scrollDelta = container.scrollTop - origScrollTopRef.current;
+        const startY = startPosRef.current?.y ?? mouseY;
+        const mouseOffset = mouseY - startY + scrollDelta;
+
+        setState((prev) => ({
+          ...prev,
+          dragOverIndex: targetIndex,
+          mouseOffset,
+        }));
       }
 
       autoScrollRafRef.current = requestAnimationFrame(tick);
     };
 
     autoScrollRafRef.current = requestAnimationFrame(tick);
-  }, [stopAutoScroll]);
+  }, [computeTargetIndex, stopAutoScroll]);
 
   const handleDragStart = useCallback((index: number) => {
     hasMovedRef.current = false;
@@ -114,26 +145,18 @@ export function useDragSort(
         if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
           hasMovedRef.current = true;
         }
+
+        const scrollDelta =
+          containerRef.current.scrollTop - origScrollTopRef.current;
         setState((prev) => ({
           ...prev,
-          mouseOffset: e.clientY - startPosRef.current!.y,
+          mouseOffset: e.clientY - startPosRef.current!.y + scrollDelta,
         }));
       } else {
         startPosRef.current = { x: e.clientX, y: e.clientY };
       }
 
-      const rects = origRectsRef.current;
-      if (rects.length === 0) return;
-
-      // Use the original (un-transformed) positions plus scroll delta
-      // to compute the target slot accurately while the list scrolls.
-      const container = containerRef.current;
-      const scrollDelta = container.scrollTop - origScrollTopRef.current;
-      const firstTop = rects[0].top;
-      const relativeY = e.clientY - firstTop + scrollDelta;
-      let targetIndex = Math.round(relativeY / stepRef.current);
-      targetIndex = Math.max(0, Math.min(targetIndex, itemCount - 1));
-
+      const targetIndex = computeTargetIndex(e.clientY);
       if (targetIndex !== stateRef.current.dragOverIndex) {
         setState((prev) => ({ ...prev, dragOverIndex: targetIndex }));
       }
@@ -174,7 +197,7 @@ export function useDragSort(
       stopAutoScroll();
       invoke("set_dragging", { dragging: false }).catch(() => {});
     };
-  }, [state.draggingIndex, itemCount, onReorder, startAutoScroll, stopAutoScroll]);
+  }, [state.draggingIndex, onReorder, startAutoScroll, stopAutoScroll, computeTargetIndex]);
 
   /** Compute the inline style for each list item during drag. */
   const getItemStyle = useCallback(
