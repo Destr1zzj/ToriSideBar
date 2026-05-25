@@ -9,6 +9,7 @@
     back: { en: 'Back', zh: '返回' },
     reload: { en: 'Reload', zh: '刷新' },
     openExternal: { en: 'Open in browser', zh: '用浏览器打开' },
+    minimize: { en: 'Minimize', zh: '最小化' },
     close: { en: 'Close', zh: '关闭' },
   };
 
@@ -158,6 +159,13 @@
     openExternal.style.cssText = btnStyle;
     openExternal.onclick = function(e) { e.stopPropagation(); tauriInvoke('open_external_url', { url: location.href }); };
     bar.appendChild(openExternal);
+
+    const minimize = document.createElement('button');
+    minimize.innerHTML = '−';
+    minimize.title = _t.minimize[_lang] || _t.minimize['en'];
+    minimize.style.cssText = btnStyle;
+    minimize.onclick = function(e) { e.stopPropagation(); tauriInvoke('minimize_app_window', { label: WINDOW_LABEL }); };
+    bar.appendChild(minimize);
 
     const close = document.createElement('button');
     close.innerHTML = '×';

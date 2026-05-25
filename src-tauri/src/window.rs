@@ -267,6 +267,15 @@ pub async fn close_app_window(app: AppHandle, label: String) -> Result<(), Strin
     Ok(())
 }
 
+/// Minimize a specific app window by label.
+#[tauri::command]
+pub async fn minimize_app_window(app: AppHandle, label: String) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window(&label) {
+        window.minimize().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Close all app windows.
 #[tauri::command]
 pub async fn close_all_app_windows(app: AppHandle) -> Result<(), String> {

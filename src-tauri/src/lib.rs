@@ -32,6 +32,7 @@ pub fn run() {
             commands::get_trigger_width,
             window::toggle_app_window,
             window::close_app_window,
+            window::minimize_app_window,
             window::close_all_app_windows,
             window::open_child_window,
             window::close_child_windows,
