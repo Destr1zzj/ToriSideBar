@@ -60,6 +60,7 @@ Move your mouse to the **right edge** of your screen (within 12px by default). T
 2. Click the **➕** button at the bottom.
 3. Enter a name and URL, pick a favicon source or random emoji.
 4. Click **Add**. It's now in your sidebar.
+   
 
 1. 鼠标悬停展开边栏。
 2. 点击底部 **➕** 按钮。
