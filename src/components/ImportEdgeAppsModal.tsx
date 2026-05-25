@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n";
+import { getDomain } from "../utils/favicon";
 import { getRandomEmoji } from "../utils/emoji";
 import type { AppItem } from "../types";
 
@@ -59,7 +60,7 @@ export function ImportEdgeAppsModal({ onClose, onImport }: ImportEdgeAppsModalPr
         label: "app-" + id,
         title: edgeApp.title,
         url: edgeApp.url,
-        icon: getRandomEmoji(),
+        icon: `https://www.google.com/s2/favicons?domain=${getDomain(edgeApp.url)}&sz=128`,
       };
     });
     onImport(apps);
@@ -89,7 +90,18 @@ export function ImportEdgeAppsModal({ onClose, onImport }: ImportEdgeAppsModalPr
                   <span className="import-checkbox">
                     {selected.has(index) ? "☑" : "☐"}
                   </span>
-                      <span className="import-app-icon emoji">{getRandomEmoji()}</span>
+                      <img
+                    className="import-app-icon"
+                    src={`https://www.google.com/s2/favicons?domain=${getDomain(app.url)}&sz=32`}
+                    alt=""
+                    draggable={false}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      target.parentElement!.querySelector(".import-fallback")?.classList.remove("hidden");
+                    }}
+                  />
+                  <span className="import-app-icon import-fallback hidden">{getRandomEmoji()}</span>
                   <div className="import-app-info">
                     <div className="import-app-title">{app.title}</div>
                     <div className="import-app-url">{app.url}</div>

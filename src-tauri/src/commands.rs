@@ -86,30 +86,13 @@ pub struct EdgeAppInfo {
     pub icon_url: Option<String>,
 }
 
-#[tauri::command]
-pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
-    let local_app_data =
-        std::env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA not found".to_string())?;
-
-    let prefs_path = std::path::PathBuf::from(local_app_data)
-        .join("Microsoft")
-        .join("Edge")
-        .join("User Data")
-        .join("Default")
-        .join("Preferences");
-
-    let content = std::fs::read_to_string(&prefs_path)
-        .map_err(|e| format!("Failed to read Edge Preferences: {}", e))?;
-
-    let prefs: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse Preferences: {}", e))?;
-
+fn extract_edge_apps_from_prefs(content: &str) -> Option<Vec<EdgeAppInfo>> {
+    let prefs: serde_json::Value = serde_json::from_str(content).ok()?;
     let user_generated = prefs
         .get("browser")
         .and_then(|b| b.get("hub_app_preferences"))
         .and_then(|h| h.get("user_generated"))
-        .and_then(|u| u.as_object())
-        .ok_or_else(|| "No user_generated apps found in Edge Preferences".to_string())?;
+        .and_then(|u| u.as_object())?;
 
     let mut apps = Vec::new();
     for (_id, value) in user_generated {
@@ -147,7 +130,62 @@ pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
         }
     }
 
-    Ok(apps)
+    if apps.is_empty() {
+        None
+    } else {
+        Some(apps)
+    }
+}
+
+#[tauri::command]
+pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
+    let local_app_data =
+        std::env::var("LOCALAPPDATA").map_err(|_| "LOCALAPPDATA not found".to_string())?;
+
+    // Edge variants: Stable, Beta, Dev, Canary
+    let edge_names = ["Edge", "Edge Beta", "Edge Dev", "Edge SxS"];
+
+    let mut all_apps = Vec::new();
+    let mut tried_paths = Vec::new();
+
+    for edge_name in &edge_names {
+        let user_data_dir = std::path::PathBuf::from(&local_app_data)
+            .join("Microsoft")
+            .join(edge_name)
+            .join("User Data");
+
+        if !user_data_dir.is_dir() {
+            continue;
+        }
+
+        // Scan all profiles inside User Data
+        let entries = std::fs::read_dir(&user_data_dir)
+            .map_err(|e| format!("Failed to read directory {:?}: {}", user_data_dir, e))?;
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let prefs_path = path.join("Preferences");
+            tried_paths.push(prefs_path.clone());
+
+            if let Ok(content) = std::fs::read_to_string(&prefs_path) {
+                if let Some(apps) = extract_edge_apps_from_prefs(&content) {
+                    all_apps.extend(apps);
+                }
+            }
+        }
+    }
+
+    if all_apps.is_empty() {
+        if tried_paths.is_empty() {
+            return Err("No Edge installation found".to_string());
+        }
+        return Err("No user-generated apps found in any Edge profile".to_string());
+    }
+
+    Ok(all_apps)
 }
 
 // ------------------------------------------------------------------
