@@ -54,6 +54,9 @@ pub fn animate_bar(app_handle: AppHandle) {
             // Determine target x:
             // - If BAR_TARGET_X was explicitly set (expand/collapse), use it
             // - Otherwise derive from visibility state
+            // Edge offset to compensate for WebView2 content inset.
+            const LEFT_OFFSET: i32 = 5;
+            const RIGHT_OFFSET: i32 = 3;
             let target_x = {
                 let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
                 if explicit != 0 {
@@ -62,9 +65,9 @@ pub fn animate_bar(app_handle: AppHandle) {
                     explicit
                 } else {
                     if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
-                        if is_left { screen_left } else { screen_right - BAR_WIDTH }
+                        if is_left { screen_left } else { screen_right - BAR_WIDTH + RIGHT_OFFSET }
                     } else {
-                        if is_left { screen_left - BAR_WIDTH } else { screen_right }
+                        if is_left { screen_left - BAR_WIDTH } else { screen_right + RIGHT_OFFSET }
                     }
                 }
             };
@@ -128,7 +131,7 @@ pub fn animate_bar(app_handle: AppHandle) {
                 let fully_off_screen = if is_left {
                     current_x + BAR_WIDTH <= screen_left + 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
                 } else {
-                    current_x >= screen_right - 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                    current_x >= screen_right && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
                 };
                 if fully_off_screen {
                     let _ = bar.hide();
@@ -143,7 +146,7 @@ pub fn animate_bar(app_handle: AppHandle) {
                     let fully_off = if is_left {
                         current_x + BAR_WIDTH <= screen_left + 1
                     } else {
-                        current_x >= screen_right - 1
+                        current_x >= screen_right
                     };
                     if fully_off {
                         let _ = bar.hide();

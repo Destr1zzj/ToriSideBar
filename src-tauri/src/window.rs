@@ -5,7 +5,7 @@ use tauri::{
 use tauri::webview::PageLoadEvent;
 
 use crate::inject::INJECT_JS;
-use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area, diag_log};
+use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
 use crate::state::*;
 
 // ------------------------------------------------------------------
@@ -47,13 +47,17 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     let is_expanded = BAR_EXPANDED.load(std::sync::atomic::Ordering::SeqCst);
     let bar_width = if is_expanded { 280i32 } else { 64i32 };
 
+    // Edge offset: WebView2 renders with a small inset inside the client area.
+    // Left edge shifts left so content touches the bezel.
+    // Right edge shifts right so content touches the bezel (trigger zone unchanged).
+    const LEFT_OFFSET: i32 = 5;
+    const RIGHT_OFFSET: i32 = 3;
+
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        // Use the monitor where the mouse is for vertical sizing,
-        // but pin x to the leftmost physical edge.
         let x = leftmost;
         let y = work_top;
         let height = work_bottom - work_top;
@@ -63,8 +67,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        // Pin x to the rightmost physical edge; y/height follow mouse monitor.
-        let x = rightmost - bar_width;
+        let x = rightmost - bar_width + RIGHT_OFFSET;
         let y = work_top;
         let height = work_bottom - work_top;
         (x, y, height)
@@ -77,13 +80,6 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         height: height as u32,
     })
     .map_err(|e| e.to_string())?;
-    // Read back actual position for diagnostic
-    if let Ok(actual) = bar.outer_position() {
-        diag_log(&format!(
-            "position_bar DONE: intended=({}, {}) actual=({}, {}) is_left={} width={}",
-            x, y, actual.x, actual.y, is_left, bar_width
-        ));
-    }
     // Clear explicit target so animation thread re-derives from visibility state
     BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
     Ok(())
@@ -107,7 +103,7 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (rightmost - expanded, work_top, work_bottom - work_top)
+        (rightmost - expanded + 3, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })
@@ -140,7 +136,7 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
         let (work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
-        (rightmost - narrow, work_top, work_bottom - work_top)
+        (rightmost - narrow + 3, work_top, work_bottom - work_top)
     };
 
     bar.set_position(PhysicalPosition { x, y })
