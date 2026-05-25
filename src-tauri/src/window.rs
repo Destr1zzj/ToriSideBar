@@ -74,6 +74,8 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         height: height as u32,
     })
     .map_err(|e| e.to_string())?;
+    // Clear explicit target so animation thread re-derives from visibility state
+    BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
     Ok(())
 }
 
