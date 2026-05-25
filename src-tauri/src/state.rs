@@ -29,6 +29,9 @@ pub static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
 /// Bar position: 0 = left edge, 1 = right edge.
 pub static BAR_POSITION: AtomicU8 = AtomicU8::new(1);
 
+/// Leftmost monitor edge across all displays (for left-docked bar).
+pub static BAR_FIXED_LEFT: AtomicI32 = AtomicI32::new(0);
+
 /// When true, the auto-hide thread is paused so the bar stays visible
 /// during drag-to-sort operations.
 pub static DRAGGING: AtomicBool = AtomicBool::new(false);

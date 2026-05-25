@@ -705,6 +705,22 @@ body {
   font-size: 12px;
   cursor: pointer;
   font-family: inherit;
+  white-space: nowrap;
+}
+
+.shortcut-save-btn.recording {
+  background: #ef4444;
+}
+
+.shortcut-input.recording {
+  border-color: #ef4444;
+  animation: pulseBorder 1s infinite;
+}
+
+@keyframes pulseBorder {
+  0% { border-color: rgba(239, 68, 68, 0.5); }
+  50% { border-color: rgba(239, 68, 68, 1); }
+  100% { border-color: rgba(239, 68, 68, 0.5); }
 }
 
 /* Import Edge Apps Modal */

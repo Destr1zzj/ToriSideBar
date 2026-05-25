@@ -37,6 +37,8 @@ export const en = {
   right: "Right",
   globalShortcut: "Global Shortcut",
   save: "Save",
+  record: "Record",
+  pressShortcut: "Press shortcut...",
 };
 
 export type Translations = typeof en;

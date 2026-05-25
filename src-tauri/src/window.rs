@@ -5,7 +5,7 @@ use tauri::{
 use tauri::webview::PageLoadEvent;
 
 use crate::inject::INJECT_JS;
-use crate::monitor::{get_mouse_monitor_work_area, get_window_monitor_work_area, get_work_area};
+use crate::monitor::{get_leftmost_monitor_left, get_mouse_monitor_work_area, get_window_monitor_work_area};
 use crate::state::*;
 
 // ------------------------------------------------------------------
@@ -38,27 +38,40 @@ fn remove_from_child_map(child_label: &str) {
 // ------------------------------------------------------------------
 
 /// Position the bar window at the configured edge, respecting taskbar.
-/// Uses the monitor where the mouse currently is, so multi-monitor setups
-/// place the bar on the correct screen.
+/// Right edge follows the mouse monitor; left edge is pinned to the
+/// leftmost monitor across all displays.
 #[tauri::command]
 pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let (work_left, work_top, work_right, work_bottom) =
-        get_mouse_monitor_work_area(&app);
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
     let is_expanded = BAR_EXPANDED.load(std::sync::atomic::Ordering::SeqCst);
     let bar_width = if is_expanded { 280i32 } else { 64i32 };
-    let x = if is_left {
-        work_left
+
+    let (x, y, height) = if is_left {
+        let leftmost = get_leftmost_monitor_left(&app);
+        crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        // Use the monitor where the mouse is for vertical sizing,
+        // but pin x to the leftmost edge.
+        let x = leftmost;
+        let y = work_top;
+        let height = work_bottom - work_top;
+        (x, y, height)
     } else {
-        work_right - bar_width
+        let (work_left, work_top, work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        let x = work_right - bar_width;
+        let y = work_top;
+        let height = work_bottom - work_top;
+        (x, y, height)
     };
-    let y = work_top;
+
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
         width: bar_width as u32,
-        height: (work_bottom - work_top) as u32,
+        height: height as u32,
     })
     .map_err(|e| e.to_string())?;
     Ok(())
@@ -68,17 +81,26 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let (work_left, work_top, work_right, _work_bottom) =
-        get_mouse_monitor_work_area(&app);
     let expanded = 280i32;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let x = if is_left { work_left } else { work_right - expanded };
-    let height = bar.outer_size().map_err(|e| e.to_string())?.height;
-    bar.set_position(PhysicalPosition { x, y: work_top })
+
+    let (x, y, height) = if is_left {
+        let leftmost = get_leftmost_monitor_left(&app);
+        crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        (leftmost, work_top, work_bottom - work_top)
+    } else {
+        let (work_left, work_top, work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        (work_right - expanded, work_top, work_bottom - work_top)
+    };
+
+    bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
         width: expanded as u32,
-        height,
+        height: height as u32,
     })
     .map_err(|e| e.to_string())?;
     BAR_EXPANDED.store(true, std::sync::atomic::Ordering::SeqCst);
@@ -90,17 +112,26 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let (work_left, work_top, work_right, _work_bottom) =
-        get_mouse_monitor_work_area(&app);
     let narrow = 64i32;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let x = if is_left { work_left } else { work_right - narrow };
-    let height = bar.outer_size().map_err(|e| e.to_string())?.height;
-    bar.set_position(PhysicalPosition { x, y: work_top })
+
+    let (x, y, height) = if is_left {
+        let leftmost = get_leftmost_monitor_left(&app);
+        crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
+        let (work_left, work_top, _work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        (leftmost, work_top, work_bottom - work_top)
+    } else {
+        let (work_left, work_top, work_right, work_bottom) =
+            get_mouse_monitor_work_area(&app);
+        (work_right - narrow, work_top, work_bottom - work_top)
+    };
+
+    bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
         width: narrow as u32,
-        height,
+        height: height as u32,
     })
     .map_err(|e| e.to_string())?;
     BAR_EXPANDED.store(false, std::sync::atomic::Ordering::SeqCst);

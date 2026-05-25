@@ -36,7 +36,11 @@ pub fn animate_bar(app_handle: AppHandle) {
             }
 
             let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
-            let screen_left = BAR_SCREEN_LEFT.load(Ordering::SeqCst);
+            let screen_left = if is_left {
+                BAR_FIXED_LEFT.load(Ordering::SeqCst)
+            } else {
+                BAR_SCREEN_LEFT.load(Ordering::SeqCst)
+            };
             let screen_right = BAR_SCREEN_RIGHT.load(Ordering::SeqCst);
             let screen_top = BAR_SCREEN_TOP.load(Ordering::SeqCst);
             if screen_right == 0 {
@@ -222,9 +226,11 @@ pub fn start_auto_hide(app_handle: AppHandle) {
 
             let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
             let trigger = TRIGGER_WIDTH.load(Ordering::SeqCst) as i32;
-            // Trigger zone is measured from the monitor's configured edge
+            // Trigger zone is measured from the monitor's configured edge.
+            // For left-docked bar, use the fixed leftmost edge across all displays.
             let near_edge = if is_left {
-                mouse.0 <= work_left + trigger
+                let fixed_left = BAR_FIXED_LEFT.load(Ordering::SeqCst);
+                mouse.0 <= fixed_left + trigger
             } else {
                 mouse.0 >= work_right - trigger
             };

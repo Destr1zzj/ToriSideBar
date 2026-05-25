@@ -39,4 +39,6 @@ export const zh: Translations = {
   right: "右侧",
   globalShortcut: "全局快捷键",
   save: "保存",
+  record: "录制",
+  pressShortcut: "按下快捷键...",
 };

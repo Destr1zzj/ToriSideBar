@@ -26,6 +26,7 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
+  const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
 
   // Global shortcut registration
   useEffect(() => {
@@ -51,6 +52,60 @@ export default function App() {
   useEffect(() => {
     invoke("position_bar").catch(() => {});
   }, [barPosition]);
+
+  // Shortcut recording listener
+  useEffect(() => {
+    if (!isRecordingShortcut) return;
+
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const mods: string[] = [];
+      if (e.ctrlKey) mods.push("Ctrl");
+      if (e.altKey) mods.push("Alt");
+      if (e.shiftKey) mods.push("Shift");
+      if (e.metaKey) mods.push("Command");
+
+      // Ignore pure modifier keys
+      if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) return;
+
+      let key = e.code;
+      // Normalize common keys to Tauri format
+      if (key.startsWith("Key")) key = key.slice(3);
+      else if (key.startsWith("Digit")) key = key.slice(5);
+      else if (key === "Space") key = "Space";
+      else if (key === "Enter") key = "Return";
+      else if (key === "Escape") key = "Escape";
+      else if (key === "Backspace") key = "Backspace";
+      else if (key === "Tab") key = "Tab";
+      else if (key === "ArrowUp") key = "Up";
+      else if (key === "ArrowDown") key = "Down";
+      else if (key === "ArrowLeft") key = "Left";
+      else if (key === "ArrowRight") key = "Right";
+      else if (key === "Comma") key = ",";
+      else if (key === "Period") key = ".";
+      else if (key === "Slash") key = "/";
+      else if (key === "Semicolon") key = ";";
+      else if (key === "Quote") key = "'";
+      else if (key === "BracketLeft") key = "[";
+      else if (key === "BracketRight") key = "]";
+      else if (key === "Backslash") key = "\\";
+      else if (key === "Minus") key = "-";
+      else if (key === "Equal") key = "=";
+      else if (key === "Backquote") key = "`";
+      else if (key.startsWith("F") && key.length <= 3) key = key; // F1-F24
+
+      if (mods.length === 0) return; // Require at least one modifier
+
+      const shortcut = [...mods, key].join("+");
+      setShortcutInput(shortcut);
+      setIsRecordingShortcut(false);
+    };
+
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [isRecordingShortcut]);
 
   // ESC handler
   useEffect(() => {
@@ -241,18 +296,33 @@ export default function App() {
             <label>{t("globalShortcut")}</label>
             <div className="shortcut-row">
               <input
-                className="shortcut-input"
+                className={`shortcut-input ${isRecordingShortcut ? "recording" : ""}`}
                 type="text"
-                placeholder="Ctrl+Shift+Space"
+                readOnly
+                placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
                 value={shortcutInput}
                 onChange={(e) => setShortcutInput(e.target.value)}
               />
               <button
-                className="shortcut-save-btn"
-                onClick={() => setGlobalShortcut(shortcutInput)}
+                className={`shortcut-save-btn ${isRecordingShortcut ? "recording" : ""}`}
+                onClick={() => {
+                  if (isRecordingShortcut) {
+                    setIsRecordingShortcut(false);
+                  } else {
+                    setIsRecordingShortcut(true);
+                  }
+                }}
               >
-                {t("save")}
+                {isRecordingShortcut ? t("cancel") : t("record")}
               </button>
+              {!isRecordingShortcut && (
+                <button
+                  className="shortcut-save-btn"
+                  onClick={() => setGlobalShortcut(shortcutInput)}
+                >
+                  {t("save")}
+                </button>
+              )}
             </div>
           </div>
           <div className="setting-row">
