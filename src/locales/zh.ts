@@ -41,4 +41,6 @@ export const zh: Translations = {
   save: "保存",
   record: "录制",
   pressShortcut: "按下快捷键...",
+  shortcutInUse: "快捷键已被占用，请更换",
+  clear: "清除",
 };

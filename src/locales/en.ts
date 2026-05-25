@@ -39,6 +39,8 @@ export const en = {
   save: "Save",
   record: "Record",
   pressShortcut: "Press shortcut...",
+  shortcutInUse: "Shortcut already in use, please choose another",
+  clear: "Clear",
 };
 
 export type Translations = typeof en;

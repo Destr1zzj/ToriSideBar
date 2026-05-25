@@ -27,10 +27,15 @@ export default function App() {
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
+  const [shortcutError, setShortcutError] = useState("");
 
   // Global shortcut registration
   useEffect(() => {
     let activeShortcut = globalShortcut;
+    if (!activeShortcut) {
+      setShortcutError("");
+      return;
+    }
     const registerShortcut = async () => {
       try {
         await register(activeShortcut, (event) => {
@@ -38,8 +43,9 @@ export default function App() {
             invoke("toggle_bar_visible").catch(() => {});
           }
         });
+        setShortcutError("");
       } catch {
-        // Shortcut may be taken by another app; ignore silently
+        setShortcutError(t("shortcutInUse"));
       }
     };
     registerShortcut();
@@ -47,6 +53,12 @@ export default function App() {
       unregister(activeShortcut).catch(() => {});
     };
   }, [globalShortcut]);
+
+  const clearShortcut = () => {
+    setShortcutInput("");
+    setGlobalShortcut("");
+    setShortcutError("");
+  };
 
   // Re-position bar when position changes
   useEffect(() => {
@@ -60,6 +72,11 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      if (e.key === "Escape") {
+        setIsRecordingShortcut(false);
+        return;
+      }
 
       const mods: string[] = [];
       if (e.ctrlKey) mods.push("Ctrl");
@@ -101,6 +118,7 @@ export default function App() {
       const shortcut = [...mods, key].join("+");
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
+      setShortcutError("");
       setGlobalShortcut(shortcut);
     };
 
@@ -295,27 +313,41 @@ export default function App() {
           </div>
           <div className="setting-row">
             <label>{t("globalShortcut")}</label>
-            <div className="shortcut-row">
-              <input
-                className={`shortcut-input ${isRecordingShortcut ? "recording" : ""}`}
-                type="text"
-                readOnly
-                placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
-                value={shortcutInput}
-                onChange={(e) => setShortcutInput(e.target.value)}
-              />
-              <button
-                className={`shortcut-save-btn ${isRecordingShortcut ? "recording" : ""}`}
-                onClick={() => {
-                  if (isRecordingShortcut) {
-                    setIsRecordingShortcut(false);
-                  } else {
-                    setIsRecordingShortcut(true);
-                  }
-                }}
-              >
-                {isRecordingShortcut ? t("cancel") : t("record")}
-              </button>
+            <div className="shortcut-wrap">
+              <div className="shortcut-row">
+                <input
+                  className={`shortcut-input ${isRecordingShortcut ? "recording" : ""} ${shortcutError ? "error" : ""}`}
+                  type="text"
+                  readOnly
+                  placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
+                  value={shortcutInput}
+                  onChange={(e) => setShortcutInput(e.target.value)}
+                />
+                {shortcutInput && !isRecordingShortcut && (
+                  <button
+                    className="shortcut-clear-btn"
+                    onClick={clearShortcut}
+                    title={t("clear")}
+                  >
+                    ×
+                  </button>
+                )}
+                <button
+                  className={`shortcut-save-btn ${isRecordingShortcut ? "recording" : ""}`}
+                  onClick={() => {
+                    if (isRecordingShortcut) {
+                      setIsRecordingShortcut(false);
+                    } else {
+                      setIsRecordingShortcut(true);
+                    }
+                  }}
+                >
+                  {isRecordingShortcut ? t("cancel") : t("record")}
+                </button>
+              </div>
+              {shortcutError && (
+                <div className="shortcut-error">{shortcutError}</div>
+              )}
             </div>
           </div>
           <div className="setting-row">
