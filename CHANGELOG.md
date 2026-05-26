@@ -4,6 +4,15 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## v0.5.1 — 2026-05-26
+
+### Fixed / 修复
+
+- 🐛 导出/导入配置改用应用内提示条，修复 WebView2 `alert()` 弹窗无法点击的问题。
+- 🐛 导出配置改用 Rust 命令直接写入 Downloads 目录，修复浏览器下载在 WebView2 中无响应的问题。
+
+---
+
 ## v0.5.0 — 2026-05-26
 
 ### New / 新增
