@@ -66,6 +66,8 @@ pub fn run() {
             commands::toggle_bar_visible,
             commands::get_app_version,
             commands::check_update,
+            commands::show_guide_window,
+            commands::close_guide_window,
         ])
         .setup(|app| {
             // System tray icon with right-click menu
@@ -84,15 +86,30 @@ pub fn run() {
                 .build(app)?;
 
             let app_handle = app.handle().clone();
+            let is_first = commands::is_first_run();
+
+            if is_first {
+                // First run: collapse bar, show guide glow for 10s
+                state::BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
+                let _ = commands::show_guide_window(app_handle.clone());
+
+                let app_h = app_handle.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(10));
+                    commands::close_guide_window(app_h.clone());
+                    commands::mark_first_run_seen();
+                    state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
+                });
+            } else {
+                state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
+            }
+
             tauri::async_runtime::spawn(async move {
                 let _ = window::position_bar(app_handle.clone()).await;
                 if let Some(bar) = app_handle.get_webview_window("bar") {
                     let _ = bar.show();
                 }
             });
-
-            // Bar starts visible
-            state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
 
             animation::start_auto_hide(app.handle().clone());
             animation::animate_bar(app.handle().clone());

@@ -251,6 +251,74 @@ pub fn confirm_exit(lang: String) -> bool {
 }
 
 // ------------------------------------------------------------------
+// First-run guide
+// ------------------------------------------------------------------
+
+fn first_run_marker_path() -> std::path::PathBuf {
+    std::env::var("APPDATA")
+        .map(|p| std::path::PathBuf::from(p).join("ToriSidebar"))
+        .unwrap_or_else(|_| std::env::temp_dir().join("ToriSidebar"))
+        .join(".first-run-seen")
+}
+
+pub fn is_first_run() -> bool {
+    !first_run_marker_path().exists()
+}
+
+pub fn mark_first_run_seen() {
+    let path = first_run_marker_path();
+    let _ = std::fs::create_dir_all(path.parent().unwrap());
+    let _ = std::fs::write(&path, b"1");
+}
+
+#[tauri::command]
+pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{WebviewUrl, WebviewWindowBuilder};
+    use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area};
+
+    if app.get_webview_window("guide").is_some() {
+        return Ok(());
+    }
+
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+
+    let (x, y, height) = if is_left {
+        let leftmost = get_leftmost_monitor_left(&app);
+        let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
+        (leftmost, work_top, work_bottom - work_top)
+    } else {
+        let rightmost = get_rightmost_monitor_right(&app);
+        let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
+        (rightmost - 18 - 6, work_top, work_bottom - work_top)
+    };
+
+    let _guide = WebviewWindowBuilder::new(&app, "guide", WebviewUrl::App(std::path::PathBuf::from("guide.html")))
+        .title("")
+        .inner_size(18.0, height as f64)
+        .position(x as f64, y as f64)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .closable(false)
+        .visible(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn close_guide_window(app: tauri::AppHandle) {
+    if let Some(guide) = app.get_webview_window("guide") {
+        let _ = guide.close();
+    }
+}
+
+// ------------------------------------------------------------------
 // App version & update check
 // ------------------------------------------------------------------
 
