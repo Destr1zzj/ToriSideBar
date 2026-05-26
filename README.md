@@ -47,7 +47,8 @@ Too impatient to read? I respect that.
 | 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
 | 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
-| 💡 **First-Run Guide** *(experimental)* | Ice-blue glow bar hints where to trigger on first launch. Windows rendering limitations apply. 首次启动时冰蓝色光条提示触发位置，Windows 渲染限制下视觉效果待优化。 |
+| 💡 **First-Run Guide** | Ice-blue glow bar rendered via native WinAPI `WS_EX_LAYERED` window — silky, edge-free, half spills outside the screen bezel. 原生 WinAPI 分层窗口绘制冰蓝色光条，丝滑无硬边，半屏外发光。 |
+| 💾 **Config Export/Import** | One-click export all apps & settings to JSON, import on another machine. 一键导出所有应用和设置项为 JSON，换电脑时一键导入恢复。 |
 
 ---
 
@@ -84,6 +85,21 @@ Already spent hours curating your Edge sidebar? Don't let that work go to waste.
 2. 点击**"从 Edge 导入"**。
 3. ToriSidebar 会扫描你电脑上的所有 Edge 版本（正式版 / Beta / Dev / Canary）及所有用户配置，列出你的自定义应用。
 4. 勾选想要的（或点**全选**），然后点击**导入**。
+
+### 💾 Export & Import Config / 配置导出与导入
+Want to move your setup to another machine? Easy.
+
+1. Click the **⚙️** button to enter **Manage Mode**.
+2. Click **"Export Config"** — saves a `.json` file to your Downloads.
+3. On the new machine, open Manage Mode and click **"Import Config"** — pick the `.json` file.
+4. Everything (apps, order, settings, language) is restored instantly.
+
+想换电脑或者重装系统？一键迁移配置：
+
+1. 点击 **⚙️** 进入**管理模式**。
+2. 点击**"导出配置"** — 将 `.json` 文件保存到 Downloads。
+3. 在新电脑上进入 Manage Mode，点击**"导入配置"** — 选择刚才的 `.json` 文件。
+4. 所有应用、排序、设置、语言立即恢复。
 
 ### 🛠️ Manage Mode / 管理模式
 Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you can:
