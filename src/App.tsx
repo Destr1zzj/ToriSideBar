@@ -40,6 +40,7 @@ export default function App() {
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [shortcutHint, setShortcutHint] = useState("");
   const [exportStatus, setExportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [importStatus, setImportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Global shortcut registration
   useEffect(() => {
@@ -288,7 +289,8 @@ export default function App() {
       const text = await file.text();
       const config = parseConfigFile(text);
       if (!config) {
-        alert(t("invalidConfigFile"));
+        setImportStatus({ type: "error", message: t("invalidConfigFile") });
+        setTimeout(() => setImportStatus(null), 4000);
         event.target.value = "";
         return;
       }
@@ -301,10 +303,11 @@ export default function App() {
       setShortcutInput(config.data.globalShortcut);
       setLang(config.data.language as "en" | "zh");
       await invoke("sync_language", { lang: config.data.language });
-      alert(t("configImported"));
+      setImportStatus({ type: "success", message: t("configImported") });
     } catch (e) {
-      alert(t("importFailed") + ": " + String(e));
+      setImportStatus({ type: "error", message: t("importFailed") + ": " + String(e) });
     }
+    setTimeout(() => setImportStatus(null), 4000);
     event.target.value = "";
   }, [t]);
 
@@ -457,6 +460,11 @@ export default function App() {
             <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
             {t("importConfig")}
           </label>
+          {importStatus && (
+            <div className={`export-status ${importStatus.type}`}>
+              {importStatus.message}
+            </div>
+          )}
 
           <div className="about-section">
             <div className="about-divider" />
