@@ -284,15 +284,16 @@ pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
 
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
-    let width = 24;
+    let width = 80;
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
-        (leftmost, work_top, work_bottom - work_top)
+        // Center the glow on the screen edge so half spills outside
+        (leftmost - width / 2, work_top, work_bottom - work_top)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
-        (rightmost - width, work_top, work_bottom - work_top)
+        (rightmost - width / 2, work_top, work_bottom - work_top)
     };
 
     crate::guide_native::show_guide(x, y, width, height);

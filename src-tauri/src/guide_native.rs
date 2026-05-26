@@ -118,8 +118,11 @@ pub fn show_guide(x: i32, y: i32, width: i32, height: i32) {
             let start = std::time::Instant::now();
 
             let center_x = width as f32 / 2.0;
-            let sigma_core = width as f32 * 0.22;
-            let sigma_halo = width as f32 * 0.9;
+            // Four-layer gaussian for a silky, edge-free falloff
+            let sigma_core = 5.0;
+            let sigma_mid = 12.0;
+            let sigma_halo = 22.0;
+            let sigma_glow = 38.0;
             let two_pi_over_period = std::f32::consts::PI / 1.2; // 2.4 s period
 
             while !stop_flag.load(Ordering::SeqCst) {
@@ -131,17 +134,27 @@ pub fn show_guide(x: i32, y: i32, width: i32, height: i32) {
 
                 for py in 0..height {
                     let vy = py as f32 / (height.saturating_sub(1)).max(1) as f32;
-                    // Vertical parabolic fade (middle bright, edges dark)
-                    let vertical = 1.0 - (2.0 * vy - 1.0).abs().powf(2.0);
+                    // Only fade the top/bottom 5 % so the glow fills the full height
+                    let vertical = if vy < 0.05 {
+                        vy / 0.05
+                    } else if vy > 0.95 {
+                        (1.0 - vy) / 0.05
+                    } else {
+                        1.0
+                    };
 
                     for px in 0..width {
                         let dx = (px as f32 - center_x).abs();
 
-                        // Two gaussians: tight core + wide halo
+                        // Four gaussians: concentrated core → soft mid → wide halo → subtle glow
                         let core = (-(dx * dx) / (sigma_core * sigma_core)).exp();
+                        let mid = (-(dx * dx) / (sigma_mid * sigma_mid)).exp();
                         let halo = (-(dx * dx) / (sigma_halo * sigma_halo)).exp();
-                        let mut intensity =
-                            (core * 1.0 + halo * 0.35) * vertical * breathe * brightness;
+                        let glow = (-(dx * dx) / (sigma_glow * sigma_glow)).exp();
+                        let mut intensity = (core * 1.0 + mid * 0.5 + halo * 0.25 + glow * 0.06)
+                            * vertical
+                            * breathe
+                            * brightness;
 
                         intensity = intensity.min(1.0);
 
