@@ -327,6 +327,21 @@ pub fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+#[tauri::command]
+pub fn export_config(content: String) -> Result<String, String> {
+    let downloads = std::env::var("USERPROFILE")
+        .map(|p| std::path::PathBuf::from(p).join("Downloads"))
+        .unwrap_or_else(|_| std::env::temp_dir());
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let filename = format!("torisidebar-config-{}.json", ts);
+    let path = downloads.join(&filename);
+    std::fs::write(&path, content).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 fn compare_version(a: &str, b: &str) -> std::cmp::Ordering {
     let parse = |s: &str| {
         s.trim_start_matches('v')

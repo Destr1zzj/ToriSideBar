@@ -62,6 +62,8 @@ export const en = {
   invalidConfigFile: "Invalid config file",
   configImported: "Config imported successfully. Please restart if layout looks off.",
   importFailed: "Import failed",
+  configExported: "Config saved to",
+  exportFailed: "Export failed",
 };
 
 export type Translations = typeof en;

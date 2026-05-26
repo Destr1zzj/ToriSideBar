@@ -64,4 +64,6 @@ export const zh: Translations = {
   invalidConfigFile: "配置文件格式错误",
   configImported: "配置导入成功，如布局异常请重启应用",
   importFailed: "导入失败",
+  configExported: "配置已保存至",
+  exportFailed: "导出失败",
 };

@@ -15,7 +15,7 @@ import { AddAppModal } from "./components/AddAppModal";
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
-import { exportConfig, downloadConfig, parseConfigFile, applyConfig } from "./utils/storage";
+import { exportConfig, serializeConfig, parseConfigFile, applyConfig } from "./utils/storage";
 import "./App.css";
 
 export default function App() {
@@ -269,10 +269,15 @@ export default function App() {
     }
   }, [isManaging]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     const config = exportConfig();
-    downloadConfig(config);
-  }, []);
+    try {
+      const path = await invoke<string>("export_config", { content: serializeConfig(config) });
+      alert(t("configExported") + "\n" + path);
+    } catch (e) {
+      alert(t("exportFailed") + ": " + String(e));
+    }
+  }, [t]);
 
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

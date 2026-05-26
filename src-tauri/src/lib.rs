@@ -66,6 +66,7 @@ pub fn run() {
             commands::get_bar_position,
             commands::toggle_bar_visible,
             commands::get_app_version,
+            commands::export_config,
             commands::check_update,
             commands::show_guide_window,
             commands::close_guide_window,
