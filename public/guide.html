@@ -9,7 +9,7 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 100%;
+      width: 14px;
       background: linear-gradient(180deg,
         transparent 0%,
         rgba(56, 189, 248, 0.12) 5%,
@@ -27,6 +27,12 @@
         0 0 200px 90px rgba(56, 189, 248, 0.12),
         0 0 360px 150px rgba(56, 189, 248, 0.05);
       animation: breathe 2.4s ease-in-out infinite;
+    }
+    .sidebar-right .glow {
+      right: 0;
+    }
+    .sidebar-left .glow {
+      left: 0;
     }
     @keyframes breathe {
       0%, 100% { opacity: 0.45; filter: brightness(0.8); }
