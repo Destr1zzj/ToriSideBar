@@ -275,6 +275,12 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             };
 
             if should_show && !was_over {
+                // First-run: dismiss guide on first trigger (mouse edge or shortcut)
+                if FIRST_RUN_GUIDE_ACTIVE.load(Ordering::SeqCst) {
+                    FIRST_RUN_GUIDE_ACTIVE.store(false, Ordering::SeqCst);
+                    crate::commands::mark_first_run_seen();
+                    crate::guide_native::close_guide();
+                }
                 TRIGGER_ACTIVE.store(true, Ordering::SeqCst);
                 BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
                 was_over = true;

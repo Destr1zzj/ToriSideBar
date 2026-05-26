@@ -113,17 +113,16 @@ pub fn show_guide(x: i32, y: i32, width: i32, height: i32) {
             let pixels = std::slice::from_raw_parts_mut(bits as *mut u32, pixel_count);
 
             // ------------------------------------------------------------------
-            // Animation loop (~30 fps, 10 s max)
+            // Animation loop (~30 fps, runs until explicitly closed)
             // ------------------------------------------------------------------
             let start = std::time::Instant::now();
-            let duration = std::time::Duration::from_secs(10);
 
             let center_x = width as f32 / 2.0;
             let sigma_core = width as f32 * 0.22;
             let sigma_halo = width as f32 * 0.9;
             let two_pi_over_period = std::f32::consts::PI / 1.2; // 2.4 s period
 
-            while !stop_flag.load(Ordering::SeqCst) && start.elapsed() < duration {
+            while !stop_flag.load(Ordering::SeqCst) {
                 let elapsed = start.elapsed().as_secs_f32();
                 // Breathe: 0.5 .. 1.0 sine wave (2.4 s cycle)
                 let breathe = 0.5 + 0.5 * (elapsed * two_pi_over_period).sin();

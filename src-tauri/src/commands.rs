@@ -97,6 +97,13 @@ pub fn get_bar_position() -> String {
 
 #[tauri::command]
 pub fn toggle_bar_visible() {
+    // First-run: dismiss guide on shortcut trigger
+    if crate::state::FIRST_RUN_GUIDE_ACTIVE.load(std::sync::atomic::Ordering::SeqCst) {
+        crate::state::FIRST_RUN_GUIDE_ACTIVE.store(false, std::sync::atomic::Ordering::SeqCst);
+        crate::commands::mark_first_run_seen();
+        crate::guide_native::close_guide();
+    }
+
     let locked = crate::state::BAR_LOCKED.load(std::sync::atomic::Ordering::SeqCst);
     if locked {
         // Unlock and hide

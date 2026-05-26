@@ -91,17 +91,10 @@ pub fn run() {
             let is_first = commands::is_first_run();
 
             if is_first {
-                // First run: collapse bar, show guide glow for 10s
+                // First run: keep bar hidden, show edge glow until user triggers the bar
                 state::BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
+                state::FIRST_RUN_GUIDE_ACTIVE.store(true, Ordering::SeqCst);
                 let _ = commands::show_guide_window(app_handle.clone());
-
-                let app_h = app_handle.clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_secs(10));
-                    commands::close_guide_window(app_h.clone());
-                    commands::mark_first_run_seen();
-                    state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
-                });
             } else {
                 state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
             }
