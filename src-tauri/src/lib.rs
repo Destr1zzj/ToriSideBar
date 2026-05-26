@@ -99,10 +99,13 @@ pub fn run() {
                 state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
             }
 
+            let should_show_bar = !is_first;
             tauri::async_runtime::spawn(async move {
                 let _ = window::position_bar(app_handle.clone()).await;
-                if let Some(bar) = app_handle.get_webview_window("bar") {
-                    let _ = bar.show();
+                if should_show_bar {
+                    if let Some(bar) = app_handle.get_webview_window("bar") {
+                        let _ = bar.show();
+                    }
                 }
             });
 
