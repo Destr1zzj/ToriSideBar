@@ -319,29 +319,8 @@ pub fn close_guide_window(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub fn reset_first_run(app: tauri::AppHandle) {
-    use std::sync::atomic::Ordering;
-
-    // 1. Delete marker file so next launch is treated as first run
+pub fn reset_first_run() {
     let _ = std::fs::remove_file(first_run_marker_path());
-
-    // 2. Close existing guide if any
-    close_guide_window(app.clone());
-
-    // 3. Collapse bar (hide)
-    crate::state::BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
-
-    // 4. Show guide glow
-    let _ = show_guide_window(app.clone());
-
-    // 5. After 10s, dismiss guide and reveal bar
-    let app_h = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_secs(10));
-        close_guide_window(app_h.clone());
-        mark_first_run_seen();
-        crate::state::BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
-    });
 }
 
 // ------------------------------------------------------------------
