@@ -39,6 +39,7 @@ export default function App() {
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [shortcutHint, setShortcutHint] = useState("");
+  const [exportStatus, setExportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Global shortcut registration
   useEffect(() => {
@@ -273,10 +274,11 @@ export default function App() {
     const config = exportConfig();
     try {
       const path = await invoke<string>("export_config", { content: serializeConfig(config) });
-      alert(t("configExported") + "\n" + path);
+      setExportStatus({ type: "success", message: t("configExported") + ": " + path });
     } catch (e) {
-      alert(t("exportFailed") + ": " + String(e));
+      setExportStatus({ type: "error", message: t("exportFailed") + ": " + String(e) });
     }
+    setTimeout(() => setExportStatus(null), 4000);
   }, [t]);
 
   const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -446,6 +448,11 @@ export default function App() {
           <button className="manage-export-btn" onClick={handleExport}>
             {t("exportConfig")}
           </button>
+          {exportStatus && (
+            <div className={`export-status ${exportStatus.type}`}>
+              {exportStatus.message}
+            </div>
+          )}
           <label className="manage-import-config-btn">
             <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
             {t("importConfig")}
