@@ -37,16 +37,16 @@ jobs:
         run: npm run build
 
       - name: Build Tauri app
-        shell: pwsh
+        shell: cmd
         run: |
-          $proc = Start-Process -FilePath "npm" -ArgumentList "run","tauri","--","build" -NoNewWindow -PassThru -Wait
-          if ($proc.ExitCode -ne 0) {
-            Write-Host "tauri build exited with code $($proc.ExitCode) — checking if exe was produced anyway"
-          }
-          if (-not (Test-Path "src-tauri/target/release/torisidebar.exe")) {
-            Write-Error "Build failed: torisidebar.exe not found"
-            exit 1
-          }
+          npm run tauri -- build
+          echo Build command finished with errorlevel %ERRORLEVEL%
+          if exist "src-tauri\target\release\torisidebar.exe" (
+            echo Artifact found, proceeding
+          ) else (
+            echo Build failed: torisidebar.exe not found
+            exit /b 1
+          )
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
