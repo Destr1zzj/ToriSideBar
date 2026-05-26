@@ -15,12 +15,17 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 - 🎹 **Shortcut UX Polish** — Click input to record, auto-save after recording, clear button, and weak conflict hint. 快捷键设置 UX：点击输入框录制、录制后自动保存、清除按钮、冲突弱提示。
 - 🔄 **Manual Update Check** — Displays local vs latest GitHub release version, one-click jump to download. 手动检查更新：显示本地与 GitHub 最新版本，一键跳转下载。
 - 📅 **Auto Check on Mondays** — Automatically checks for updates every Monday; shows red badge on manage button when update is available. 每周一自动检查更新；发现新版本时管理按钮显示红点提示。
+- 💡 **First-Run Guide (Experimental)** — Ice-blue glow bar on screen edge for 10s on first launch. Windows WebView2 transparent window has rendering limitations; visual quality is suboptimal. 首次启动引导（实验性）：首次启动时屏幕边缘显示冰蓝色光条 10 秒。受 Windows WebView2 透明窗口渲染限制，视觉效果未达预期。
 
 ### Fixed / 修复
 
 - 🐛 Right-side bar content no longer overflows screen (WebView2 inset compensation). 右侧边栏内容不再超出屏幕。
 - 🐛 `activeApps` state no longer persists across restarts (was showing stale active indicators). activeApps 不再跨重启持久化，避免重启后显示错误的活跃状态。
 - 🐛 Cleared shortcut no longer restores to default after restart. 清除快捷键后重启不再恢复默认值。
+
+### Known Issues / 已知问题
+
+- 🧊 **First-run guide visual imperfection** — WebView2 transparent windows on Windows cannot fully eliminate border/background artifacts. The 20px glow bar is a workaround; some edge artifacts may still be visible. 首次启动引导的视觉效果未达预期：WebView2 在 Windows 上的透明窗口无法完全消除边框/背景瑕疵，20px 光条为折中方案，边缘可能仍有可见瑕疵。
 
 ### Engineering / 工程化
 

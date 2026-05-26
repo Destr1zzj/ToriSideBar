@@ -47,6 +47,7 @@ Too impatient to read? I respect that.
 | 🍪 **Isolated Sessions** | Each app runs in its own WebView — multiple Google accounts, no problem. 每个应用独立 WebView，多账号无冲突。 |
 | 🌐 **Bilingual** | Full English / 简体中文 support, synced across all windows. 完整的英语 / 简体中文支持，全窗口同步。 |
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
+| 💡 **First-Run Guide** *(experimental)* | Ice-blue glow bar hints where to trigger on first launch. Windows rendering limitations apply. 首次启动时冰蓝色光条提示触发位置，Windows 渲染限制下视觉效果待优化。 |
 
 ---
 
