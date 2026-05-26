@@ -292,7 +292,7 @@ pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
         (rightmost - 18 - 6, work_top, work_bottom - work_top)
     };
 
-    let _guide = WebviewWindowBuilder::new(&app, "guide", WebviewUrl::App(std::path::PathBuf::from("guide.html")))
+    let guide = WebviewWindowBuilder::new(&app, "guide", WebviewUrl::App(std::path::PathBuf::from("guide.html")))
         .title("")
         .inner_size(18.0, height as f64)
         .position(x as f64, y as f64)
@@ -307,6 +307,24 @@ pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
         .visible(true)
         .build()
         .map_err(|e| e.to_string())?;
+
+    // Remove window border and shadow on Windows
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(hwnd) = guide.hwnd() {
+            unsafe {
+                use winapi::um::winuser::{SetWindowLongPtrA, GetWindowLongPtrA, GWL_STYLE, GWL_EXSTYLE, SetWindowPos, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SWP_NOACTIVATE, SWP_SHOWWINDOW};
+                let hwnd = hwnd.0 as winapi::shared::windef::HWND;
+                let style = GetWindowLongPtrA(hwnd, GWL_STYLE) as u32;
+                let new_style = style & !winapi::um::winuser::WS_THICKFRAME & !winapi::um::winuser::WS_CAPTION;
+                SetWindowLongPtrA(hwnd, GWL_STYLE, new_style as isize);
+                let ex_style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE) as u32;
+                let new_ex_style = ex_style & !winapi::um::winuser::WS_EX_CLIENTEDGE & !winapi::um::winuser::WS_EX_WINDOWEDGE & !winapi::um::winuser::WS_EX_STATICEDGE;
+                SetWindowLongPtrA(hwnd, GWL_EXSTYLE, new_ex_style as isize);
+                SetWindowPos(hwnd, std::ptr::null_mut(), 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            }
+        }
+    }
 
     Ok(())
 }
