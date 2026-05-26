@@ -607,7 +607,7 @@ body {
 
 .manage-settings {
   border-top: 1px solid var(--border-medium);
-  padding: 10px 12px 6px;
+  padding: 14px 12px 8px;
   width: 100%;
 }
 
@@ -650,11 +650,16 @@ body {
 .setting-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.setting-row:last-child {
+  margin-bottom: 0;
 }
 
 .setting-row label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
