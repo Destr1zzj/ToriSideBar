@@ -340,45 +340,49 @@ export default function App() {
         </div>
       )}
 
-      {(!isManaging || manageAppsExpanded) && (
-        <div className="app-list" ref={containerRef}>
-          {apps.length === 0 && !isManaging && (
-            <div className="empty-state">
-              <div className="empty-icon">📭</div>
-              <div className="empty-text">{t("noApps")}</div>
-              <button className="empty-add-btn" onClick={openAddModal}>
-                {t("addFirstApp")}
-              </button>
-            </div>
-          )}
-          {apps.map((app, index) =>
-            isManaging ? (
-              <ManageAppItem
-                key={app.id}
-                app={app}
-                index={index}
-                isActive={activeApps.has(app.label)}
-                isDragging={draggingIndex === index}
-                style={getItemStyle(index)}
-                onRemove={handleRemoveApp}
-                onDragStart={handleDragStart}
-              />
-            ) : (
-              <AppListItem
-                key={app.id}
-                app={app}
-                isActive={activeApps.has(app.label)}
-                isDragging={draggingIndex === index}
-                style={getItemStyle(index)}
-                onMouseDown={() => handleDragStart(index)}
-                onClose={handleCloseApp}
-              />
-            )
-          )}
+      <div className={`app-list-outer ${isManaging ? (manageAppsExpanded ? "expanded" : "collapsed") : ""}`}>
+        <div className="app-list-inner">
+          <div className="app-list" ref={containerRef}>
+            {apps.length === 0 && !isManaging && (
+              <div className="empty-state">
+                <div className="empty-icon">📭</div>
+                <div className="empty-text">{t("noApps")}</div>
+                <button className="empty-add-btn" onClick={openAddModal}>
+                  {t("addFirstApp")}
+                </button>
+              </div>
+            )}
+            {apps.map((app, index) =>
+              isManaging ? (
+                <ManageAppItem
+                  key={app.id}
+                  app={app}
+                  index={index}
+                  isActive={activeApps.has(app.label)}
+                  isDragging={draggingIndex === index}
+                  style={getItemStyle(index)}
+                  onRemove={handleRemoveApp}
+                  onDragStart={handleDragStart}
+                />
+              ) : (
+                <AppListItem
+                  key={app.id}
+                  app={app}
+                  isActive={activeApps.has(app.label)}
+                  isDragging={draggingIndex === index}
+                  style={getItemStyle(index)}
+                  onMouseDown={() => handleDragStart(index)}
+                  onClose={handleCloseApp}
+                />
+              )
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
-      {isManaging && !manageAppsExpanded && (
+      {isManaging && (
+        <div className={`settings-outer ${!manageAppsExpanded ? "expanded" : ""}`}>
+        <div className="settings-inner">
         <div className="manage-settings">
           <div className="setting-row">
             <label>{t("barPosition")}</label>
@@ -596,6 +600,8 @@ export default function App() {
               </span>
             </div>
           </div>
+        </div>
+        </div>
         </div>
       )}
 
