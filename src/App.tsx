@@ -9,6 +9,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useDragSort } from "./hooks/useDragSort";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { useTheme, type ThemeId } from "./hooks/useTheme";
+import { useAutostart } from "./hooks/useAutostart";
 
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
@@ -33,6 +34,7 @@ export default function App() {
     checkUpdate,
   } = useUpdateCheck();
   const { themeId, customColors, setTheme, setCustomColors } = useTheme();
+  const { autostart, toggleAutostart } = useAutostart();
 
   const [isManaging, setIsManaging] = useState(false);
   const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
@@ -428,6 +430,23 @@ export default function App() {
                 <div className={`shortcut-hint ${shortcutHint === t("shortcutInUse") ? "error" : ""}`}>{shortcutHint}</div>
               )}
               <div className="shortcut-desc">{t("shortcutLockHint")}</div>
+            </div>
+          </div>
+          <div className="setting-row">
+            <label>{t("autostart")}</label>
+            <div className="lang-selector">
+              <button
+                className={`lang-btn ${autostart ? "active" : ""}`}
+                onClick={() => toggleAutostart(true)}
+              >
+                {t("on")}
+              </button>
+              <button
+                className={`lang-btn ${!autostart ? "active" : ""}`}
+                onClick={() => toggleAutostart(false)}
+              >
+                {t("off")}
+              </button>
             </div>
           </div>
           <div className="setting-row">
