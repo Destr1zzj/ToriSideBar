@@ -378,7 +378,7 @@ export default function App() {
         </div>
       )}
 
-      {isManaging && (
+      {isManaging && !manageAppsExpanded && (
         <div className="manage-settings">
           <div className="setting-row">
             <label>{t("barPosition")}</label>
