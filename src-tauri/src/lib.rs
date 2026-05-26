@@ -68,6 +68,7 @@ pub fn run() {
             commands::check_update,
             commands::show_guide_window,
             commands::close_guide_window,
+            commands::reset_first_run,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

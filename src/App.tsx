@@ -461,7 +461,7 @@ export default function App() {
             <button
               className="about-btn test-first-run"
               onClick={() => {
-                invoke("show_guide_window").catch(() => {});
+                invoke("reset_first_run").catch(() => {});
               }}
             >
               {t("testFirstRun")}
