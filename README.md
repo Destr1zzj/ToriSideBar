@@ -49,6 +49,7 @@ Too impatient to read? I respect that.
 | 🎭 **Emoji Icon Fallback** | When favicon fails to load, automatically falls back to a random emoji. Favicon 加载失败时自动回退到随机 emoji。 |
 | 💡 **First-Run Guide** | Ice-blue glow bar rendered via native WinAPI `WS_EX_LAYERED` window — silky, edge-free, half spills outside the screen bezel. 原生 WinAPI 分层窗口绘制冰蓝色光条，丝滑无硬边，半屏外发光。 |
 | 💾 **Config Export/Import** | One-click export all apps & settings to JSON, import on another machine. 一键导出所有应用和设置项为 JSON，换电脑时一键导入恢复。 |
+| 🎨 **Theme System** | 4 presets (Dark/Light/Nord/Dracula) + fully custom colors. Instant switch, no restart. 4 套预设主题 + 完全自定义配色，即时切换无需重启。 |
 
 ---
 
@@ -106,6 +107,7 @@ Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you 
 - **Drag the ⋮⋮ handle** to reorder apps.
 - **Click 🗑️** to delete an app.
 - **Adjust trigger width** with the slider.
+- **Switch theme** — Dark, Light, Nord, Dracula, or fully custom colors.
 - **Switch language** between English and 简体中文.
 - **Switch bar position** — left or right edge of the screen.
 - **Set a global shortcut** — default is `Ctrl+Shift+Space`. Press once to lock the bar visible; press again or click outside to unlock.
@@ -116,6 +118,7 @@ Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you 
 - **拖动 ⋮⋮ 把手**排序应用。
 - **点击 🗑️** 删除应用。
 - **调整触发宽度**滑块。
+- **切换主题** — 暗色、亮色、Nord、Dracula 或完全自定义颜色。
 - **切换语言**。
 - **切换边栏位置** — 屏幕左边缘或右边缘。
 - **设置全局快捷键** — 默认 `Ctrl+Shift+Space`。一次按下锁定边栏常显；再次按下或点击外部区域解锁。
@@ -171,7 +174,7 @@ edge-sidebar/
 │   ├── utils/                  # Utility functions / 工具函数
 │   ├── locales/                # i18n translations / 国际化翻译
 │   ├── App.tsx                 # Main UI composition / 主界面组合
-│   ├── App.css                 # Dark mode styling / 暗黑主题样式
+│   ├── App.css                 # Theme system (CSS variables) / 主题系统（CSS 变量）
 │   └── main.tsx                # Entry point / 入口
 ├── src-tauri/                  # Rust backend
 │   ├── src/
