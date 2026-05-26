@@ -6,6 +6,9 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -21,12 +24,27 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-action@stable
+        with:
+          cache-workspaces: |
+            src-tauri
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Build frontend
+        run: npm run build
+
       - name: Build Tauri app
-        run: npm run tauri build
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath "npm" -ArgumentList "run","tauri","--","build" -NoNewWindow -PassThru -Wait
+          if ($proc.ExitCode -ne 0) {
+            Write-Host "tauri build exited with code $($proc.ExitCode) — checking if exe was produced anyway"
+          }
+          if (-not (Test-Path "src-tauri/target/release/torisidebar.exe")) {
+            Write-Error "Build failed: torisidebar.exe not found"
+            exit 1
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -34,11 +52,17 @@ jobs:
           name: ToriSidebar-windows
           path: src-tauri/target/release/torisidebar.exe
 
-      - name: Create Release (on tag push)
+      - name: Rename artifact for release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Copy-Item -Path "src-tauri/target/release/torisidebar.exe" -Destination "src-tauri/target/release/ToriSidebar_new.exe" -Force
+
+      - name: Create or Update Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: src-tauri/target/release/torisidebar.exe
-          generate_release_notes: true
+          files: src-tauri/target/release/ToriSidebar_new.exe
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
