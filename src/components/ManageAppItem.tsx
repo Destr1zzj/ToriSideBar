@@ -61,7 +61,7 @@ export function ManageAppItem({
           onClick={handleResetWindow}
           title={t("resetWindow")}
         >
-          {t("resetWindow")}
+          <img src="/icons/reset.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
         </button>
         <button
           className="manage-action-btn delete"
@@ -69,7 +69,7 @@ export function ManageAppItem({
           onClick={() => onRemove(app.id)}
           title={t("delete")}
         >
-          {t("delete")}
+          <img src="/icons/Delete.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
         </button>
       </div>
     </div>

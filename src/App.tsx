@@ -603,10 +603,10 @@ export default function App() {
         {!isManaging ? (
           <>
             <button className="action-btn" onClick={openAddModal} title={t("addApp")}>
-              ➕
+              <img src="/icons/add.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
             </button>
             <button className="action-btn manage-btn-wrap" onClick={toggleManageMode} title={t("manage")}>
-              ⚙️
+              <img src="/icons/set.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
               {hasUpdate && <span className="update-badge" />}
             </button>
             <button
@@ -619,7 +619,7 @@ export default function App() {
               }}
               title={t("exitApp")}
             >
-              🚪
+              <img src="/icons/quit.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
             </button>
           </>
         ) : (

@@ -47,6 +47,7 @@ export interface ThemeVars {
   // Misc
   "--slider-bg": string;
   "--shadow": string;
+  "--icon-filter": string;
 }
 
 export interface Theme {
@@ -102,6 +103,7 @@ export const PRESET_THEMES: Theme[] = [
       "--purple-border": "rgba(168, 85, 247, 0.2)",
       "--slider-bg": "rgba(255, 255, 255, 0.1)",
       "--shadow": "rgba(0, 0, 0, 0.5)",
+      "--icon-filter": "invert(1)",
     },
   },
   {
@@ -150,6 +152,7 @@ export const PRESET_THEMES: Theme[] = [
       "--purple-border": "rgba(147, 51, 234, 0.2)",
       "--slider-bg": "rgba(0, 0, 0, 0.1)",
       "--shadow": "rgba(0, 0, 0, 0.12)",
+      "--icon-filter": "none",
     },
   },
   {
@@ -198,6 +201,7 @@ export const PRESET_THEMES: Theme[] = [
       "--purple-border": "rgba(180, 142, 173, 0.2)",
       "--slider-bg": "rgba(216, 222, 233, 0.1)",
       "--shadow": "rgba(0, 0, 0, 0.45)",
+      "--icon-filter": "invert(1)",
     },
   },
   {
@@ -246,6 +250,7 @@ export const PRESET_THEMES: Theme[] = [
       "--purple-border": "rgba(189, 147, 249, 0.2)",
       "--slider-bg": "rgba(248, 248, 242, 0.1)",
       "--shadow": "rgba(0, 0, 0, 0.5)",
+      "--icon-filter": "invert(1)",
     },
   },
 ];
@@ -361,5 +366,6 @@ export function generateCustomTheme(colors: CustomColors): ThemeVars {
     "--purple-border": dark ? "rgba(168, 85, 247, 0.2)" : "rgba(147, 51, 234, 0.2)",
     "--slider-bg": withAlpha(colors.text, 0.1),
     "--shadow": `rgba(${shadowColor}, 0.5)`,
+    "--icon-filter": dark ? "invert(1)" : "none",
   };
 }
