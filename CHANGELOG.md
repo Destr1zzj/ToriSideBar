@@ -4,6 +4,21 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## v0.5.0 — 2026-05-26
+
+### New / 新增
+
+- 💡 **First-Run Guide (Native)** — Replaced WebView2 with a pure WinAPI `WS_EX_LAYERED` window. Ice-blue glow is now rendered via CPU pixel shaders (4-layer gaussian blur), completely eliminating border/background artifacts. 首次启动引导改用纯 WinAPI 分层窗口，CPU 像素级绘制四层高斯光效，彻底消除 WebView2 的边框/背景瑕疵。
+- 🎯 **Guide Dismiss on First Trigger** — The glow stays until the user first triggers the bar (mouse edge or shortcut), instead of a fixed 10s timer. 引导光效改为"触发即关闭"：持续显示直到用户首次呼出边栏（鼠标移到边缘或全局快捷键），而非固定 10 秒倒计时。
+- ✨ **Silky Glow Polish** — 80px wide, centered on screen bezel so half spills outside; edge-fade-free vertical fill; multi-gaussian falloff for a seamless bloom. 光效细腻度大幅提升：80px 宽度、中心对齐屏幕边缘（半屏外发光）、仅上下 5% 边缘淡入淡出、多层衰减无硬边。
+
+### Fixed / 修复
+
+- 🧊 **First-run guide visual imperfection** — Resolved by ditching WebView2 transparent windows entirely. 首次引导视觉效果问题已通过完全移除 WebView2 方案解决。
+- 🐛 **Bar incorrectly shown on first launch** — The sidebar no longer forces `show()` during setup on first run; visibility is now fully controlled by `BAR_TARGET_VISIBLE`. 修复首次启动时边栏被强制显示的问题。
+
+---
+
 ## v0.4.0 — 2026-05-25
 
 ### New / 新增
