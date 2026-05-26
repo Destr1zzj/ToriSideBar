@@ -64,6 +64,16 @@ export const en = {
   importFailed: "Import failed",
   configExported: "Config saved to",
   exportFailed: "Export failed",
+  theme: "Theme",
+  themeDark: "Dark",
+  themeLight: "Light",
+  themeNord: "Nord",
+  themeDracula: "Dracula",
+  themeCustom: "Custom",
+  customTheme: "Custom Theme",
+  backgroundColor: "Background",
+  textColor: "Text",
+  accentColor: "Accent",
 };
 
 export type Translations = typeof en;

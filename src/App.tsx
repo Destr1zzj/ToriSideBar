@@ -8,6 +8,7 @@ import { useTriggerWidth } from "./hooks/useTriggerWidth";
 import { useSettings } from "./hooks/useSettings";
 import { useDragSort } from "./hooks/useDragSort";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { useTheme, type ThemeId } from "./hooks/useTheme";
 
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
@@ -31,6 +32,7 @@ export default function App() {
     checking,
     checkUpdate,
   } = useUpdateCheck();
+  const { themeId, customColors, setTheme, setCustomColors } = useTheme();
 
   const [isManaging, setIsManaging] = useState(false);
   const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
@@ -440,6 +442,50 @@ export default function App() {
               />
               <span className="slider-value">{triggerWidth}px</span>
             </div>
+          </div>
+          <div className="setting-row">
+            <label>{t("theme")}</label>
+            <div className="theme-selector">
+              {(["dark", "light", "nord", "dracula", "custom"] as ThemeId[]).map((id) => (
+                <button
+                  key={id}
+                  className={`theme-btn ${themeId === id ? "active" : ""}`}
+                  onClick={() => setTheme(id)}
+                  title={t(id === "dark" ? "themeDark" : id === "light" ? "themeLight" : id === "nord" ? "themeNord" : id === "dracula" ? "themeDracula" : "themeCustom")}
+                >
+                  <span className={`theme-dot theme-${id}`} />
+                  <span className="theme-label">{t(id === "dark" ? "themeDark" : id === "light" ? "themeLight" : id === "nord" ? "themeNord" : id === "dracula" ? "themeDracula" : "themeCustom")}</span>
+                </button>
+              ))}
+            </div>
+            {themeId === "custom" && (
+              <div className="custom-colors">
+                <div className="custom-color-row">
+                  <label>{t("backgroundColor")}</label>
+                  <input
+                    type="color"
+                    value={customColors.background}
+                    onChange={(e) => setCustomColors({ background: e.target.value })}
+                  />
+                </div>
+                <div className="custom-color-row">
+                  <label>{t("textColor")}</label>
+                  <input
+                    type="color"
+                    value={customColors.text}
+                    onChange={(e) => setCustomColors({ text: e.target.value })}
+                  />
+                </div>
+                <div className="custom-color-row">
+                  <label>{t("accentColor")}</label>
+                  <input
+                    type="color"
+                    value={customColors.accent}
+                    onChange={(e) => setCustomColors({ accent: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <LanguageSelector />
           <button className="manage-reset-btn" onClick={resetApps}>
