@@ -205,15 +205,23 @@ pub async fn toggle_app_window(
     let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
     let bar_size = bar.outer_size().map_err(|e| e.to_string())?;
 
-    let app_width: u32 = 520;
-    let app_height: u32 = bar_size.height;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let app_x: i32 = if is_left {
-        bar_pos.x + bar_size.width as i32
-    } else {
-        bar_pos.x - app_width as i32
-    };
-    let app_y: i32 = bar_pos.y;
+
+    // Try to restore saved window state; fall back to defaults.
+    let (app_width, app_height, app_x, app_y) =
+        if let Some(saved) = crate::window_state::get(&label) {
+            (saved.width, saved.height, saved.x, saved.y)
+        } else {
+            let app_width: u32 = 520;
+            let app_height: u32 = bar_size.height;
+            let app_x: i32 = if is_left {
+                bar_pos.x + bar_size.width as i32
+            } else {
+                bar_pos.x - app_width as i32
+            };
+            let app_y: i32 = bar_pos.y;
+            (app_width, app_height, app_x, app_y)
+        };
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
 
@@ -253,6 +261,10 @@ pub async fn toggle_app_window(
 /// Close a specific app window by label.
 #[tauri::command]
 pub async fn close_app_window(app: AppHandle, label: String) -> Result<(), String> {
+    // Save window state before closing.
+    if label.starts_with("app-") {
+        crate::window_state::save(&app, &label);
+    }
     // Parent window closes cascade to children; child window closes remove from map.
     let is_parent = label.starts_with("app-") && !label.contains("-tab-");
     if is_parent {
@@ -271,6 +283,9 @@ pub async fn close_app_window(app: AppHandle, label: String) -> Result<(), Strin
 /// Does NOT emit app-closed so the active indicator stays lit.
 #[tauri::command]
 pub async fn minimize_app_window(app: AppHandle, label: String) -> Result<(), String> {
+    if label.starts_with("app-") {
+        crate::window_state::save(&app, &label);
+    }
     if let Some(window) = app.get_webview_window(&label) {
         window.hide().map_err(|e| e.to_string())?;
     }

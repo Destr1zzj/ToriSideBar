@@ -69,6 +69,8 @@ export const zh: Translations = {
   autostart: "开机自启动",
   on: "开启",
   off: "关闭",
+  noApps: "还没有应用",
+  addFirstApp: "添加第一个应用",
   theme: "主题",
   themeDark: "暗色",
   themeLight: "亮色",

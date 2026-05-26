@@ -5,6 +5,7 @@ mod inject;
 mod monitor;
 mod state;
 mod window;
+mod window_state;
 
 use std::sync::atomic::Ordering;
 use tauri::Manager;

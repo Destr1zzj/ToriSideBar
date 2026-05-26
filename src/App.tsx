@@ -341,6 +341,15 @@ export default function App() {
 
       {(!isManaging || manageAppsExpanded) && (
         <div className="app-list" ref={containerRef}>
+          {apps.length === 0 && !isManaging && (
+            <div className="empty-state">
+              <div className="empty-icon">📭</div>
+              <div className="empty-text">{t("noApps")}</div>
+              <button className="empty-add-btn" onClick={openAddModal}>
+                {t("addFirstApp")}
+              </button>
+            </div>
+          )}
           {apps.map((app, index) =>
             isManaging ? (
               <ManageAppItem

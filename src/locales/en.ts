@@ -67,6 +67,8 @@ export const en = {
   autostart: "Launch on Login",
   on: "On",
   off: "Off",
+  noApps: "No apps yet",
+  addFirstApp: "Add your first app",
   theme: "Theme",
   themeDark: "Dark",
   themeLight: "Light",
