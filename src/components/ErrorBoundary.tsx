@@ -25,6 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const lang = (localStorage.getItem("tori-sidebar-language") as "en" | "zh") || "en";
+      const texts = {
+        en: { title: "Something went wrong", reload: "Reload", unknown: "Unknown error" },
+        zh: { title: "出错了", reload: "重新加载", unknown: "未知错误" },
+      };
+      const t = texts[lang] || texts.en;
       return (
         <div
           style={{
@@ -44,10 +50,10 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <div style={{ fontSize: "48px" }}>💥</div>
           <div style={{ fontSize: "18px", fontWeight: 600 }}>
-            Something went wrong
+            {t.title}
           </div>
           <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", maxWidth: "400px", textAlign: "center" }}>
-            {this.state.error?.message || "Unknown error"}
+            {this.state.error?.message || t.unknown}
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -62,7 +68,7 @@ export class ErrorBoundary extends Component<Props, State> {
               cursor: "pointer",
             }}
           >
-            Reload
+            {t.reload}
           </button>
         </div>
       );

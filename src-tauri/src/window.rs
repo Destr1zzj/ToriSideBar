@@ -207,20 +207,29 @@ pub async fn toggle_app_window(
 
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
-    // Try to restore saved window state; fall back to defaults.
+    // Base position from sidebar.
+    let default_width: u32 = 520;
+    let base_y: i32 = bar_pos.y;
+    let base_height: u32 = bar_size.height;
+
+    // Try to restore saved window size and y-position; x is always recalculated
+    // based on current sidebar edge and actual window width.
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
-            (saved.width, saved.height, saved.x, saved.y)
-        } else {
-            let app_width: u32 = 520;
-            let app_height: u32 = bar_size.height;
-            let app_x: i32 = if is_left {
+            let w = saved.width;
+            let x = if is_left {
                 bar_pos.x + bar_size.width as i32
             } else {
-                bar_pos.x - app_width as i32
+                bar_pos.x - w as i32
             };
-            let app_y: i32 = bar_pos.y;
-            (app_width, app_height, app_x, app_y)
+            (w, saved.height, x, saved.y)
+        } else {
+            let x = if is_left {
+                bar_pos.x + bar_size.width as i32
+            } else {
+                bar_pos.x - default_width as i32
+            };
+            (default_width, base_height, x, base_y)
         };
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;

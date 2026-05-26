@@ -571,14 +571,38 @@ body {
   cursor: not-allowed;
 }
 
+.manage-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.manage-item-actions .manage-action-btn {
+  width: auto;
+  min-width: 36px;
+  padding: 0 6px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
 .manage-action-btn.delete {
   font-size: 14px;
   color: var(--error);
+  background: var(--error-bg);
 }
 
 .manage-action-btn.delete:hover {
-  background: var(--error-bg);
+  background: var(--error-bg-hover);
   color: var(--error-hover);
+}
+
+.manage-action-btn.reset-window {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.manage-action-btn.reset-window:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .manage-settings {
@@ -1354,4 +1378,17 @@ body {
 
 .empty-add-btn:hover {
   background: var(--accent-bg-hover);
+}
+
+/* Config import/export row */
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.config-row .manage-export-btn,
+.config-row .manage-import-config-btn {
+  margin-top: 0;
 }

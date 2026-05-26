@@ -73,6 +73,8 @@ pub fn run() {
             commands::show_guide_window,
             commands::close_guide_window,
             commands::reset_first_run,
+            commands::reset_window_states,
+            commands::reset_window_state,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

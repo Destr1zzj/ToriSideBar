@@ -69,6 +69,8 @@ export const en = {
   off: "Off",
   noApps: "No apps yet",
   addFirstApp: "Add your first app",
+  resetWindowStates: "Reset Window Sizes",
+  resetWindow: "Reset size",
   theme: "Theme",
   themeDark: "Dark",
   themeLight: "Light",
@@ -79,6 +81,9 @@ export const en = {
   backgroundColor: "Background",
   textColor: "Text",
   accentColor: "Accent",
+  errorBoundaryTitle: "Something went wrong",
+  errorBoundaryReload: "Reload",
+  errorBoundaryUnknown: "Unknown error",
 };
 
 export type Translations = typeof en;

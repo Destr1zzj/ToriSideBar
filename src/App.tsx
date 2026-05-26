@@ -42,15 +42,16 @@ export default function App() {
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
-  const [shortcutHint, setShortcutHint] = useState("");
+  const [shortcutHintKey, setShortcutHintKey] = useState<"" | "shortcutSetHint" | "shortcutInUse">("");
   const [exportStatus, setExportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [importStatus, setImportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
 
   // Global shortcut registration
   useEffect(() => {
     let activeShortcut = globalShortcut;
     if (!activeShortcut) {
-      setShortcutHint("");
+      setShortcutHintKey("");
       return;
     }
     const registerShortcut = async () => {
@@ -60,10 +61,10 @@ export default function App() {
             invoke("toggle_bar_visible").catch(() => {});
           }
         });
-        setShortcutHint(t("shortcutSetHint"));
+        setShortcutHintKey("shortcutSetHint");
       } catch (err) {
         console.error("[shortcut] register failed:", err);
-        setShortcutHint(t("shortcutInUse"));
+        setShortcutHintKey("shortcutInUse");
       }
     };
     registerShortcut();
@@ -75,7 +76,7 @@ export default function App() {
   const clearShortcut = () => {
     setShortcutInput("");
     setGlobalShortcut("");
-    setShortcutHint("");
+    setShortcutHintKey("");
   };
 
   // Re-position bar when position changes
@@ -137,7 +138,7 @@ export default function App() {
       setShortcutInput(shortcut);
       setIsRecordingShortcut(false);
 
-      setShortcutHint("");
+      setShortcutHintKey("");
       setGlobalShortcut(shortcut);
     };
 
@@ -401,7 +402,7 @@ export default function App() {
             <div className="shortcut-wrap">
               <div className="shortcut-row">
                 <input
-                  className={`shortcut-input ${isRecordingShortcut ? "recording" : ""} ${shortcutHint && shortcutHint === t("shortcutInUse") ? "error" : ""}`}
+                  className={`shortcut-input ${isRecordingShortcut ? "recording" : ""} ${shortcutHintKey === "shortcutInUse" ? "error" : ""}`}
                   type="text"
                   readOnly
                   placeholder={isRecordingShortcut ? t("pressShortcut") : "Ctrl+Shift+Space"}
@@ -435,8 +436,8 @@ export default function App() {
                   {isRecordingShortcut ? t("cancel") : t("record")}
                 </button>
               </div>
-              {shortcutHint && (
-                <div className={`shortcut-hint ${shortcutHint === t("shortcutInUse") ? "error" : ""}`}>{shortcutHint}</div>
+              {shortcutHintKey && (
+                <div className={`shortcut-hint ${shortcutHintKey === "shortcutInUse" ? "error" : ""}`}>{t(shortcutHintKey)}</div>
               )}
               <div className="shortcut-desc">{t("shortcutLockHint")}</div>
             </div>
@@ -522,18 +523,20 @@ export default function App() {
           <button className="manage-import-btn" onClick={openImportEdgeModal}>
             {t("importEdgeApps")}
           </button>
-          <button className="manage-export-btn" onClick={handleExport}>
-            {t("exportConfig")}
-          </button>
+          <div className="config-row">
+            <button className="manage-export-btn" onClick={handleExport}>
+              {t("exportConfig")}
+            </button>
+            <label className="manage-import-config-btn">
+              <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+              {t("importConfig")}
+            </label>
+          </div>
           {exportStatus && (
             <div className={`export-status ${exportStatus.type}`}>
               {exportStatus.message}
             </div>
           )}
-          <label className="manage-import-config-btn">
-            <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
-            {t("importConfig")}
-          </label>
           {importStatus && (
             <div className={`export-status ${importStatus.type}`}>
               {importStatus.message}

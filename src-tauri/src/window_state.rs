@@ -5,7 +5,6 @@ const STATE_FILE: &str = "window-states.json";
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct WindowState {
-    pub x: i32,
     pub y: i32,
     pub width: u32,
     pub height: u32,
@@ -48,7 +47,6 @@ pub fn save(app: &AppHandle, label: &str) {
             all.insert(
                 label.to_string(),
                 WindowState {
-                    x: pos.x,
                     y: pos.y,
                     width: size.width,
                     height: size.height,
@@ -59,4 +57,14 @@ pub fn save(app: &AppHandle, label: &str) {
     }
 }
 
+pub fn reset_all() {
+    let path = state_path();
+    let _ = std::fs::remove_file(&path);
+}
 
+pub fn reset_one(label: &str) {
+    let mut all = load_all();
+    if all.remove(label).is_some() {
+        save_all(&all);
+    }
+}

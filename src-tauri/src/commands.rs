@@ -310,6 +310,16 @@ pub fn reset_first_run() {
     let _ = std::fs::remove_file(first_run_marker_path());
 }
 
+#[tauri::command]
+pub fn reset_window_states() {
+    crate::window_state::reset_all();
+}
+
+#[tauri::command]
+pub fn reset_window_state(label: String) {
+    crate::window_state::reset_one(&label);
+}
+
 // ------------------------------------------------------------------
 // App version & update check
 // ------------------------------------------------------------------

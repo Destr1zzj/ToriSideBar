@@ -71,6 +71,8 @@ export const zh: Translations = {
   off: "关闭",
   noApps: "还没有应用",
   addFirstApp: "添加第一个应用",
+  resetWindowStates: "重置窗口大小",
+  resetWindow: "重置大小",
   theme: "主题",
   themeDark: "暗色",
   themeLight: "亮色",
@@ -81,4 +83,7 @@ export const zh: Translations = {
   backgroundColor: "背景色",
   textColor: "文字色",
   accentColor: "强调色",
+  errorBoundaryTitle: "出错了",
+  errorBoundaryReload: "重新加载",
+  errorBoundaryUnknown: "未知错误",
 };

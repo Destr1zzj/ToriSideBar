@@ -2,6 +2,7 @@ import { useI18n } from "../i18n";
 import { AppIcon } from "./AppIcon";
 import { getDomain } from "../utils/favicon";
 import type { AppItem } from "../types";
+import { invoke } from "@tauri-apps/api/core";
 
 interface ManageAppItemProps {
   app: AppItem;
@@ -29,6 +30,10 @@ export function ManageAppItem({
     onDragStart(index);
   };
 
+  const handleResetWindow = () => {
+    invoke("reset_window_state", { label: app.label }).catch(() => {});
+  };
+
   return (
     <div
       className={`app-item-wrapper manage-mode ${isDragging ? "dragging" : ""}`}
@@ -49,14 +54,24 @@ export function ManageAppItem({
           domain={getDomain(app.url)}
         />
       </div>
-      <button
-        className="manage-action-btn delete"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={() => onRemove(app.id)}
-        title={t("delete")}
-      >
-        🗑️
-      </button>
+      <div className="manage-item-actions">
+        <button
+          className="manage-action-btn reset-window"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={handleResetWindow}
+          title={t("resetWindow")}
+        >
+          {t("resetWindow")}
+        </button>
+        <button
+          className="manage-action-btn delete"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => onRemove(app.id)}
+          title={t("delete")}
+        >
+          {t("delete")}
+        </button>
+      </div>
     </div>
   );
 }
