@@ -1,5 +1,6 @@
 mod animation;
 mod commands;
+mod guide_native;
 mod inject;
 mod monitor;
 mod state;

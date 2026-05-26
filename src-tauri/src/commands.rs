@@ -273,15 +273,11 @@ pub fn mark_first_run_seen() {
 
 #[tauri::command]
 pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
     use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area};
-
-    if app.get_webview_window("guide").is_some() {
-        return Ok(());
-    }
 
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
+    let width = 24;
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
@@ -289,33 +285,16 @@ pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(&app);
-        (rightmost - 18 - 6, work_top, work_bottom - work_top)
+        (rightmost - width, work_top, work_bottom - work_top)
     };
 
-    let _guide = WebviewWindowBuilder::new(&app, "guide", WebviewUrl::App(std::path::PathBuf::from("guide.html")))
-        .title("")
-        .inner_size(20.0, height as f64)
-        .position(x as f64 - 1.0, y as f64)
-        .decorations(false)
-        .transparent(true)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .maximizable(false)
-        .minimizable(false)
-        .closable(false)
-        .visible(true)
-        .build()
-        .map_err(|e| e.to_string())?;
-
+    crate::guide_native::show_guide(x, y, width, height);
     Ok(())
 }
 
 #[tauri::command]
-pub fn close_guide_window(app: tauri::AppHandle) {
-    if let Some(guide) = app.get_webview_window("guide") {
-        let _ = guide.close();
-    }
+pub fn close_guide_window(_app: tauri::AppHandle) {
+    crate::guide_native::close_guide();
 }
 
 #[tauri::command]
