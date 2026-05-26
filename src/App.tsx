@@ -458,14 +458,6 @@ export default function App() {
                 {t("githubRepo")}
               </span>
             </div>
-            <button
-              className="about-btn test-first-run"
-              onClick={() => {
-                invoke("reset_first_run").catch(() => {});
-              }}
-            >
-              {t("testFirstRun")}
-            </button>
           </div>
         </div>
       )}

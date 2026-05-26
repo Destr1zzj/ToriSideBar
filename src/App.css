@@ -909,19 +909,6 @@ body {
 .manage-import-btn:hover {
   background: rgba(14, 165, 233, 0.15);
 }
-/* Test first-run button */
-.about-btn.test-first-run {
-  width: 100%;
-  margin-top: 6px;
-  background: rgba(56, 189, 248, 0.08);
-  border-color: rgba(56, 189, 248, 0.18);
-  color: #38bdf8;
-}
-
-.about-btn.test-first-run:hover {
-  background: rgba(56, 189, 248, 0.15);
-}
-
 /* Manage apps fold */
 .manage-apps-fold {
   width: 100%;
