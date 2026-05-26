@@ -156,7 +156,7 @@ export function exportConfig(): ToriConfig {
   const lang = localStorage.getItem("tori-sidebar-language") || "en";
   return {
     exportVersion: 1,
-    appVersion: "0.5.0",
+    appVersion: "0.6.2",
     exportedAt: new Date().toISOString(),
     data: {
       apps: loadApps(),
