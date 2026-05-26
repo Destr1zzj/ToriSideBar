@@ -294,8 +294,8 @@ pub fn show_guide_window(app: tauri::AppHandle) -> Result<(), String> {
 
     let _guide = WebviewWindowBuilder::new(&app, "guide", WebviewUrl::App(std::path::PathBuf::from("guide.html")))
         .title("")
-        .inner_size(40.0, height as f64)
-        .position(x as f64 - 11.0, y as f64)
+        .inner_size(20.0, height as f64)
+        .position(x as f64 - 1.0, y as f64)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
