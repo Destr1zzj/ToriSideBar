@@ -133,3 +133,72 @@ export function saveFirstRun() {
 export function clearFirstRun() {
   localStorage.removeItem(FIRST_RUN_KEY);
 }
+
+// ------------------------------------------------------------------
+// Config export / import
+// ------------------------------------------------------------------
+
+export interface ToriConfig {
+  exportVersion: number;
+  appVersion: string;
+  exportedAt: string;
+  data: {
+    apps: AppItem[];
+    activeApps: string[];
+    triggerWidth: number;
+    barPosition: "left" | "right";
+    globalShortcut: string;
+    language: string;
+  };
+}
+
+export function exportConfig(): ToriConfig {
+  const lang = localStorage.getItem("tori-sidebar-language") || "en";
+  return {
+    exportVersion: 1,
+    appVersion: "0.5.0",
+    exportedAt: new Date().toISOString(),
+    data: {
+      apps: loadApps(),
+      activeApps: Array.from(loadActive()),
+      triggerWidth: loadTrigger(),
+      barPosition: loadBarPosition(),
+      globalShortcut: loadGlobalShortcut(),
+      language: lang === "zh" || lang === "en" ? lang : "en",
+    },
+  };
+}
+
+export function downloadConfig(config: ToriConfig) {
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `torisidebar-config-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function parseConfigFile(text: string): ToriConfig | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && parsed.exportVersion === 1 && parsed.data) {
+      return parsed as ToriConfig;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function applyConfig(config: ToriConfig) {
+  const d = config.data;
+  if (Array.isArray(d.apps)) saveApps(d.apps);
+  if (Array.isArray(d.activeApps)) saveActive(new Set(d.activeApps));
+  if (typeof d.triggerWidth === "number") saveTrigger(d.triggerWidth);
+  if (d.barPosition === "left" || d.barPosition === "right") saveBarPosition(d.barPosition);
+  if (typeof d.globalShortcut === "string") saveGlobalShortcut(d.globalShortcut);
+  if (d.language === "zh" || d.language === "en") {
+    localStorage.setItem("tori-sidebar-language", d.language);
+  }
+}

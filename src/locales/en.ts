@@ -57,6 +57,11 @@ export const en = {
   collapse: "Collapse",
   firstRunHint: "Hover here to expand",
   testFirstRun: "Test First Run",
+  exportConfig: "Export Config",
+  importConfig: "Import Config",
+  invalidConfigFile: "Invalid config file",
+  configImported: "Config imported successfully. Please restart if layout looks off.",
+  importFailed: "Import failed",
 };
 
 export type Translations = typeof en;

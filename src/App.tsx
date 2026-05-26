@@ -15,12 +15,13 @@ import { AddAppModal } from "./components/AddAppModal";
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
+import { exportConfig, downloadConfig, parseConfigFile, applyConfig } from "./utils/storage";
 import "./App.css";
 
 export default function App() {
-  const { t, lang } = useI18n();
-  const { apps, addApp, removeApp, reorderApps, resetApps } = useApps();
-  const { activeApps, addActive, removeActive, clearActive } = useActiveApps();
+  const { t, lang, setLang } = useI18n();
+  const { apps, setApps, addApp, removeApp, reorderApps, resetApps } = useApps();
+  const { activeApps, setActiveApps, addActive, removeActive, clearActive } = useActiveApps();
   const { triggerWidth, setTriggerWidth } = useTriggerWidth();
   const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut } = useSettings();
   const {
@@ -268,6 +269,38 @@ export default function App() {
     }
   }, [isManaging]);
 
+  const handleExport = useCallback(() => {
+    const config = exportConfig();
+    downloadConfig(config);
+  }, []);
+
+  const handleImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const config = parseConfigFile(text);
+      if (!config) {
+        alert(t("invalidConfigFile"));
+        event.target.value = "";
+        return;
+      }
+      applyConfig(config);
+      setApps(config.data.apps);
+      setActiveApps(new Set(config.data.activeApps));
+      setBarPosition(config.data.barPosition);
+      setTriggerWidth(config.data.triggerWidth);
+      setGlobalShortcut(config.data.globalShortcut);
+      setShortcutInput(config.data.globalShortcut);
+      setLang(config.data.language as "en" | "zh");
+      await invoke("sync_language", { lang: config.data.language });
+      alert(t("configImported"));
+    } catch (e) {
+      alert(t("importFailed") + ": " + String(e));
+    }
+    event.target.value = "";
+  }, [t]);
+
   return (
     <div className={`sidebar sidebar-${barPosition}`}>
 
@@ -405,6 +438,13 @@ export default function App() {
           <button className="manage-import-btn" onClick={openImportEdgeModal}>
             {t("importEdgeApps")}
           </button>
+          <button className="manage-export-btn" onClick={handleExport}>
+            {t("exportConfig")}
+          </button>
+          <label className="manage-import-config-btn">
+            <input type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
+            {t("importConfig")}
+          </label>
 
           <div className="about-section">
             <div className="about-divider" />

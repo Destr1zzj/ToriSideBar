@@ -59,4 +59,9 @@ export const zh: Translations = {
   collapse: "收起",
   firstRunHint: "移入展开",
   testFirstRun: "测试首次引导",
+  exportConfig: "导出配置",
+  importConfig: "导入配置",
+  invalidConfigFile: "配置文件格式错误",
+  configImported: "配置导入成功，如布局异常请重启应用",
+  importFailed: "导入失败",
 };
