@@ -50,6 +50,9 @@ Too impatient to read? I respect that.
 | 💡 **First-Run Guide** | Ice-blue glow bar rendered via native WinAPI `WS_EX_LAYERED` window — silky, edge-free, half spills outside the screen bezel. 原生 WinAPI 分层窗口绘制冰蓝色光条，丝滑无硬边，半屏外发光。 |
 | 💾 **Config Export/Import** | One-click export all apps & settings to JSON, import on another machine. 一键导出所有应用和设置项为 JSON，换电脑时一键导入恢复。 |
 | 🎨 **Theme System** | 4 presets (Dark/Light/Nord/Dracula) + fully custom colors. Instant switch, no restart. 4 套预设主题 + 完全自定义配色，即时切换无需重启。 |
+| 🔗 **Child Window Cascade** | Opening a child page (same-domain link) cascades from the parent window. Hiding the parent also hides all children. 同域名链接以子窗口形式从父窗口级联展开；隐藏父窗口时子窗口同步隐藏。 |
+| 📐 **Pixel-Perfect Alignment** | App windows align flush with the sidebar edge and match its height exactly — no gaps, no overlaps, no drift after resize. 应用窗口与边栏边缘完全贴合，高度精确对齐——无间隙、无重叠、resize 后不漂移。 |
+| 🔄 **Reset with Feedback** | Reset a single app's window size and get a green checkmark confirmation. 重置单个应用窗口大小时显示绿色对勾确认反馈。 |
 
 ---
 
@@ -106,6 +109,7 @@ Want to move your setup to another machine? Easy.
 Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you can:
 - **Drag the ⋮⋮ handle** to reorder apps.
 - **Click 🗑️** to delete an app.
+- **Reset window size** per app — closes the window and clears saved state.
 - **Adjust trigger width** with the slider.
 - **Switch theme** — Dark, Light, Nord, Dracula, or fully custom colors.
 - **Switch language** between English and 简体中文.
@@ -117,6 +121,7 @@ Click the **⚙️** gear icon to expand the sidebar into manage mode. Here you 
 点击 **⚙️** 进入管理模式。在这里你可以：
 - **拖动 ⋮⋮ 把手**排序应用。
 - **点击 🗑️** 删除应用。
+- **重置窗口大小** — 关闭窗口并清除保存的状态。
 - **调整触发宽度**滑块。
 - **切换主题** — 暗色、亮色、Nord、Dracula 或完全自定义颜色。
 - **切换语言**。
@@ -161,7 +166,7 @@ Our ingredient list, presented in the style of a bubble tea shop menu:
 | ⚛️ Frontend | **React 19 + TypeScript** | The pretty face — icon grid, inline manage mode, add-app modal, all that UI jazz |
 | 🔧 Build Tool | **Vite** | Faster than Webpack, and faster than my mood swings |
 | 🎨 Renderer | **Edge WebView2** | Yes, I'm using Microsoft's engine to build a replacement for Microsoft's product. The irony is not lost on me. |
-| 🦀 Low-level Logic | **Rust + WinAPI** | Multi-monitor detection, mouse trigger zones, slide animations — the kind of precision work that would leak memory in any other language |
+| 🦀 Low-level Logic | **Rust + WinAPI** | Multi-monitor detection, mouse trigger zones, slide animations, DWM border compensation — the kind of precision work that would leak memory in any other language |
 
 Directory layout / 项目结构：
 
@@ -220,7 +225,7 @@ Each web app runs in its own **independent WebView window** with isolated cookie
 
 ### 🌐 Language
 
-ToriSidebar is now fully bilingual. The default language is **English**. To switch to Chinese:
+ToriSidebar is fully bilingual. The default language is **English**. To switch to Chinese:
 
 1. Click the ⚙️ button to enter manage mode.
 2. Select your preferred language in the **Language** section.
@@ -230,7 +235,6 @@ The setting applies to the sidebar UI, all modals, the tray menu, and even the f
 
 ### 🐛 Known Quirks
 
-- Occasionally when teleporting across monitors, the bar might flash for a split second. This is a Windows window manager thing. I don't make the rules, I just work around them.
 - If your taskbar is vertically docked on the right side, the trigger zone and taskbar will have a territorial dispute. Recommend keeping the taskbar at the bottom or left, or reducing the trigger width.
 - Running inside an RDP / remote desktop session is not recommended. WebView2 gets moody in remote sessions.
 

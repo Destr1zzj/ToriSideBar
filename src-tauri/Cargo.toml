@@ -1,6 +1,6 @@
 [package]
 name = "torisidebar"
-version = "0.6.4"
+version = "1.0.0"
 description = "Edge Sidebar Replacement"
 authors = ["you"]
 edition = "2021"
