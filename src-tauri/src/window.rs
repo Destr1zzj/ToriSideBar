@@ -195,8 +195,8 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
-    let bar_size = bar.outer_size().map_err(|e| e.to_string())?;
+    let bar_pos = bar.inner_position().map_err(|e| e.to_string())?;
+    let bar_size = bar.inner_size().map_err(|e| e.to_string())?;
 
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
@@ -348,8 +348,8 @@ pub async fn open_child_window(
     let parent = app
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
-    let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
-    let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
+    let parent_pos = parent.inner_position().map_err(|e| e.to_string())?;
+    let parent_size = parent.inner_size().map_err(|e| e.to_string())?;
     println!(
         "[Tori] parent pos=({},{}) size=({},{})",
         parent_pos.x, parent_pos.y, parent_size.width, parent_size.height
