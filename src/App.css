@@ -1128,6 +1128,11 @@ body {
   opacity: 1;
 }
 
+.app-list-outer.no-animate,
+.app-list-outer.no-animate .app-list-inner {
+  transition: none !important;
+}
+
 .settings-outer {
   display: grid;
   grid-template-rows: 0fr;

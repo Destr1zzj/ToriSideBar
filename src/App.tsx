@@ -37,6 +37,7 @@ export default function App() {
   const { autostart, toggleAutostart } = useAutostart();
 
   const [isManaging, setIsManaging] = useState(false);
+  const [skipListAnim, setSkipListAnim] = useState(false);
   const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showImportEdge, setShowImportEdge] = useState(false);
@@ -242,13 +243,17 @@ export default function App() {
 
   const toggleManageMode = useCallback(async () => {
     setIsManaging((prev) => {
-      if (!prev) {
+      const next = !prev;
+      if (next) {
         invoke("expand_bar").catch(() => {});
+        // Entering manage mode: suppress the initial collapse animation
+        setSkipListAnim(true);
+        requestAnimationFrame(() => requestAnimationFrame(() => setSkipListAnim(false)));
       } else {
         invoke("collapse_bar").catch(() => {});
         setManageAppsExpanded(false);
       }
-      return !prev;
+      return next;
     });
   }, []);
 
@@ -340,7 +345,7 @@ export default function App() {
         </div>
       )}
 
-      <div className={`app-list-outer ${isManaging ? (manageAppsExpanded ? "expanded" : "collapsed") : ""}`}>
+      <div className={`app-list-outer ${isManaging ? (manageAppsExpanded ? "expanded" : "collapsed") : ""} ${skipListAnim ? "no-animate" : ""}`}>
         <div className="app-list-inner">
           <div className="app-list" ref={containerRef}>
             {apps.length === 0 && !isManaging && (
