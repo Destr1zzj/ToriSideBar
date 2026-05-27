@@ -89,21 +89,6 @@ pub fn get_mouse_monitor_work_area(app_handle: &AppHandle) -> (i32, i32, i32, i3
     (0, 0, 1920, 1080)
 }
 
-/// Get work area (screen minus taskbar) via bar's monitor.
-pub fn get_work_area(bar: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
-    if let Ok(Some(monitor)) = bar.current_monitor() {
-        let work = monitor.work_area();
-        (
-            work.position.x,
-            work.position.y,
-            work.size.width as i32,
-            work.size.height as i32,
-        )
-    } else {
-        (0, 0, 1920, 1080)
-    }
-}
-
 /// Get work area of the monitor that contains the given window.
 pub fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32, i32, i32) {
     if let Ok(Some(monitor)) = window.current_monitor() {

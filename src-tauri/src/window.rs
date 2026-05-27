@@ -59,7 +59,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     let (x, y, height) = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
-        let (work_left, work_top, _work_right, work_bottom) =
+        let (_work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
         let x = leftmost;
         let y = work_top;
@@ -68,7 +68,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
-        let (work_left, work_top, _work_right, work_bottom) =
+        let (_work_left, work_top, _work_right, work_bottom) =
             get_mouse_monitor_work_area(&app);
         let x = rightmost - bar_width + RIGHT_OFFSET;
         let y = work_top;
