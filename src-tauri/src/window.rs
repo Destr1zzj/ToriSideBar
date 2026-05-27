@@ -213,10 +213,8 @@ pub async fn toggle_app_window(
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
-            // Nudge 1px closer on left dock to compensate for app window's
-            // own invisible DWM border, eliminating the tiny gap.
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32 - 1
+                bar_pos.x + bar_size.width as i32
             } else {
                 bar_pos.x - w as i32
             };
@@ -355,13 +353,14 @@ pub async fn open_child_window(
         .ok_or("Parent window not found")?;
     let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
     let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
+    let parent_inner_height = parent.inner_size().map_err(|e| e.to_string())?.height;
     println!(
         "[Tori] parent pos=({},{}) size=({},{})",
         parent_pos.x, parent_pos.y, parent_size.width, parent_size.height
     );
 
     let child_width: u32 = 480;
-    let child_height: u32 = parent_size.height;
+    let child_height: u32 = parent_inner_height;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
     let child_x: i32 = if is_left {
         parent_pos.x + parent_size.width as i32
