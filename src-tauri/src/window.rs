@@ -5,14 +5,15 @@ use tauri::{
 use tauri::webview::PageLoadEvent;
 
 use crate::inject::INJECT_JS;
-use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
+use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area, WEBVIEW2_LEFT_INSET};
 use crate::state::*;
 
 // WebView2 content inset compensation (pixels).
 // Windows transparent WebView2 renders with a ~6px inset on the left side
 // of the client area.  For the right bar we shift the window left so the
 // content still touches the right bezel.
-const RIGHT_OFFSET: i32 = -6;
+const WEBVIEW2_RIGHT_INSET: i32 = 6;
+const RIGHT_OFFSET: i32 = -WEBVIEW2_RIGHT_INSET;
 
 // ------------------------------------------------------------------
 // Child-window helpers
@@ -206,20 +207,22 @@ pub async fn toggle_app_window(
 
     // Try to restore saved window size and y-position; x is always recalculated
     // based on current sidebar edge and actual window width.
+    // Account for WebView2 content inset so app windows sit flush
+    // against the sidebar's visible content edge, not the raw window edge.
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32
+                bar_pos.x + bar_size.width as i32 + WEBVIEW2_LEFT_INSET
             } else {
-                bar_pos.x - w as i32
+                bar_pos.x - w as i32 + WEBVIEW2_RIGHT_INSET
             };
             (w, saved.height, x, saved.y)
         } else {
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32
+                bar_pos.x + bar_size.width as i32 + WEBVIEW2_LEFT_INSET
             } else {
-                bar_pos.x - default_width as i32
+                bar_pos.x - default_width as i32 + WEBVIEW2_RIGHT_INSET
             };
             (default_width, base_height, x, base_y)
         };
@@ -358,9 +361,9 @@ pub async fn open_child_window(
     let child_height: u32 = parent_size.height;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
     let child_x: i32 = if is_left {
-        parent_pos.x + parent_size.width as i32
+        parent_pos.x + parent_size.width as i32 + WEBVIEW2_LEFT_INSET
     } else {
-        parent_pos.x - child_width as i32
+        parent_pos.x - child_width as i32 + WEBVIEW2_RIGHT_INSET
     };
     let child_y: i32 = parent_pos.y;
 

@@ -103,12 +103,16 @@ pub fn get_window_monitor_work_area(window: &tauri::WebviewWindow) -> (i32, i32,
     }
 }
 
+/// WebView2 renders with a content inset on the left side of the client area.
+/// Windows: ~5 px.  This is compensated in left-docked bar positioning.
+pub const WEBVIEW2_LEFT_INSET: i32 = 5;
+
 /// Find the leftmost physical edge across all available monitors.
 /// Uses WinAPI EnumDisplayMonitors (more authoritative on Windows) and
-/// subtracts 5 px to compensate for the WebView2 content inset.
+/// subtracts the WebView2 content inset to keep content flush with the bezel.
 pub fn get_leftmost_monitor_left(_app_handle: &tauri::AppHandle) -> i32 {
     let (min_left, _max_right) = get_display_bounds_winapi();
-    min_left - 5
+    min_left - WEBVIEW2_LEFT_INSET
 }
 
 /// Find the rightmost physical edge across all available monitors.
