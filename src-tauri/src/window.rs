@@ -227,16 +227,24 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    // Use the client area edge (screen coords) so app windows sit flush
-    // against the sidebar's visible content, not the raw window rect.
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let bar_edge = get_client_edge(&bar, is_left)
-        .ok_or("Failed to get bar client edge")?;
-    let (_, bar_top, _, _) =
-        get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
-    // Use inner height so saved/restored app windows match the sidebar's
-    // usable content height (outer includes invisible DWM borders).
-    let bar_inner_height = bar.inner_size().map_err(|e| e.to_string())?.height;
+
+    // Left/right use different edge strategies:
+    // - Left:  GetClientRect+ClientToScreen gives the visible content edge;
+    //          +1px micro-adjust eliminates the remaining 1px gap.
+    // - Right: outer_position has been verified to produce zero overlap.
+    let (bar_edge, bar_top, bar_inner_height) = if is_left {
+        let edge = get_client_edge(&bar, true)
+            .ok_or("Failed to get bar client edge")?;
+        let (_, top, _, _) =
+            get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
+        let inner_h = bar.inner_size().map_err(|e| e.to_string())?.height;
+        (edge + 1, top, inner_h)
+    } else {
+        let pos = bar.outer_position().map_err(|e| e.to_string())?;
+        let size = bar.outer_size().map_err(|e| e.to_string())?;
+        (pos.x, pos.y, size.height)
+    };
 
     // Base position from sidebar.
     let default_width: u32 = 520;
@@ -389,14 +397,23 @@ pub async fn open_child_window(
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let parent_edge = get_client_edge(&parent, is_left)
-        .ok_or("Failed to get parent client edge")?;
-    let parent_inner_height = parent.inner_size().map_err(|e| e.to_string())?.height;
-    let (parent_left, parent_top, parent_right, parent_bottom) =
-        get_window_rect_raw(&parent).unwrap_or((0, 0, 1920, 1080));
+
+    // Same left/right split as toggle_app_window.
+    let (parent_edge, parent_top, parent_inner_height, parent_left) = if is_left {
+        let edge = get_client_edge(&parent, true)
+            .ok_or("Failed to get parent client edge")?;
+        let (left, top, _, _) =
+            get_window_rect_raw(&parent).unwrap_or((0, 0, 1920, 1080));
+        let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
+        (edge + 1, top, inner_h, left)
+    } else {
+        let pos = parent.outer_position().map_err(|e| e.to_string())?;
+        let size = parent.outer_size().map_err(|e| e.to_string())?;
+        (pos.x, pos.y, size.height, pos.x)
+    };
     println!(
-        "[Tori] parent rect=({},{},{},{})",
-        parent_left, parent_top, parent_right - parent_left, parent_bottom - parent_top
+        "[Tori] parent_edge={} parent_top={} parent_inner_height={} parent_left={}",
+        parent_edge, parent_top, parent_inner_height, parent_left
     );
 
     let child_width: u32 = 480;
