@@ -94,8 +94,9 @@ pub fn animate_bar(app_handle: AppHandle) {
                 if diff.abs() > 500 {
                     current_x = target_x;
                 } else {
-                    // Normal smooth slide: 24px per frame (~1440px/sec)
-                    let step = diff.signum() * diff.abs().min(24);
+                    // Ease-out slide: step proportional to remaining distance
+                    let step = ((diff as f32) * 0.18).round() as i32;
+                    let step = diff.signum() * step.abs().clamp(2, 32);
                     current_x += step;
 
                     // Snap to target when very close
