@@ -1102,12 +1102,14 @@ body {
 
 .app-list-outer.collapsed {
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: grid-template-rows 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+  opacity: 0;
 }
 
 .app-list-outer.expanded {
   grid-template-rows: 1fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: grid-template-rows 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+  opacity: 1;
 }
 
 .app-list-inner {
@@ -1115,16 +1117,14 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1) 0.05s, opacity 0.25s ease 0.05s;
+  transition: opacity 0.2s ease 0.08s;
 }
 
 .app-list-outer.collapsed .app-list-inner {
-  transform: translateY(-10px);
   opacity: 0;
 }
 
 .app-list-outer.expanded .app-list-inner {
-  transform: translateY(0);
   opacity: 1;
 }
 
@@ -1136,25 +1136,25 @@ body {
 .settings-outer {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: grid-template-rows 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+  opacity: 0;
   pointer-events: none;
 }
 
 .settings-outer.expanded {
   grid-template-rows: 1fr;
+  opacity: 1;
   pointer-events: auto;
 }
 
 .settings-inner {
   overflow: hidden;
   min-height: 0;
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1) 0.05s, opacity 0.25s ease 0.05s;
-  transform: translateY(-12px);
+  transition: opacity 0.2s ease 0.08s;
   opacity: 0;
 }
 
 .settings-outer.expanded .settings-inner {
-  transform: translateY(0);
   opacity: 1;
 }
 
