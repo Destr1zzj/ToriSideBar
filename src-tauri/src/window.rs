@@ -54,7 +54,7 @@ fn get_client_edge(window: &tauri::WebviewWindow, right_edge: bool) -> Option<i3
 // ------------------------------------------------------------------
 
 /// Close all child windows of a parent and remove from map.
-fn close_child_windows_impl(app: &AppHandle, parent_label: &str) {
+pub(crate) fn close_child_windows_impl(app: &AppHandle, parent_label: &str) {
     let to_close: Vec<String> = {
         let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
         map.remove(parent_label).unwrap_or_default()

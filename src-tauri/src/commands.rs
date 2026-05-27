@@ -334,7 +334,17 @@ pub fn reset_window_states() {
 }
 
 #[tauri::command]
-pub fn reset_window_state(label: String) {
+pub fn reset_window_state(app: AppHandle, label: String) {
+    // Close the app window if it currently exists so the reset takes effect immediately.
+    if let Some(window) = app.get_webview_window(&label) {
+        let _ = window.close();
+    }
+    // If it's a parent window, also close its children.
+    let is_parent = label.starts_with("app-") && !label.contains("-tab-");
+    if is_parent {
+        crate::window::close_child_windows_impl(&app, &label);
+    }
+    // Remove saved state so next open uses defaults.
     crate::window_state::reset_one(&label);
 }
 
