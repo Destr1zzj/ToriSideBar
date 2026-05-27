@@ -151,6 +151,9 @@ pub fn animate_bar(app_handle: AppHandle) {
             }
 
             if moved {
+                if is_left {
+                    println!("[Tori] animate_bar LEFT: current_x={} target_x={} current_w={} target_w={} screen_left={}", current_x, if BAR_EXPANDED.load(Ordering::SeqCst) { screen_left } else { if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) { screen_left } else { screen_left - current_width as i32 } }, current_width, target_width, screen_left);
+                }
                 let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
                 let _ = bar.set_size(PhysicalSize {
                     width: current_width,

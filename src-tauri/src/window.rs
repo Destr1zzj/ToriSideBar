@@ -24,6 +24,7 @@ fn get_window_rect_raw(window: &tauri::WebviewWindow) -> Option<(i32, i32, i32, 
         let hwnd = window.hwnd().ok()?;
         let mut rect: RECT = std::mem::zeroed();
         if GetWindowRect(hwnd.0 as _, &mut rect) != 0 {
+            println!("[Tori] get_window_rect_raw: left={} top={} right={} bottom={} (w={} h={})", rect.left, rect.top, rect.right, rect.bottom, rect.right - rect.left, rect.bottom - rect.top);
             Some((rect.left, rect.top, rect.right, rect.bottom))
         } else {
             None
@@ -43,6 +44,7 @@ fn get_client_edge(window: &tauri::WebviewWindow, right_edge: bool) -> Option<i3
             y: 0,
         };
         ClientToScreen(hwnd.0 as _, &mut pt);
+        println!("[Tori] get_client_edge: right_edge={} client_rect=({},{},{},{}) pt.x={}", right_edge, client_rect.left, client_rect.top, client_rect.right, client_rect.bottom, pt.x);
         Some(pt.x)
     }
 }
@@ -97,6 +99,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         let x = leftmost;
         let y = work_top;
         let height = work_bottom - work_top;
+        println!("[Tori] position_bar LEFT: x={} y={} height={} bar_width={}", x, y, height, bar_width);
         (x, y, height)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
@@ -132,6 +135,7 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
         let (_work_left, work_top, _work_right, _work_bottom) =
             get_mouse_monitor_work_area(&app);
+        println!("[Tori] expand_bar LEFT: x={} y={}", leftmost, work_top);
         (leftmost, work_top)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
@@ -161,6 +165,7 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
         let (_work_left, work_top, _work_right, _work_bottom) =
             get_mouse_monitor_work_area(&app);
+        println!("[Tori] collapse_bar LEFT: x={} y={}", leftmost, work_top);
         (leftmost, work_top)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
@@ -256,13 +261,14 @@ pub async fn toggle_app_window(
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
-            // Place app window flush against the sidebar's visible content edge
-            // via WinAPI GetClientRect + ClientToScreen.
             let x = if is_left {
                 bar_edge
             } else {
                 bar_edge - w as i32
             };
+            if is_left {
+                println!("[Tori] toggle_app_window LEFT (saved): bar_edge={} app_x={} app_y={} app_w={} app_h={}", bar_edge, x, saved.y, w, saved.height);
+            }
             (w, saved.height, x, saved.y)
         } else {
             let x = if is_left {
@@ -270,6 +276,9 @@ pub async fn toggle_app_window(
             } else {
                 bar_edge - default_width as i32
             };
+            if is_left {
+                println!("[Tori] toggle_app_window LEFT (new): bar_edge={} app_x={} app_y={} app_w={} app_h={}", bar_edge, x, base_y, default_width, base_height);
+            }
             (default_width, base_height, x, base_y)
         };
 
@@ -424,6 +433,9 @@ pub async fn open_child_window(
         parent_edge - child_width as i32
     };
     let child_y: i32 = parent_top;
+    if is_left {
+        println!("[Tori] open_child_window LEFT: parent_edge={} child_x={} child_y={} child_w={} child_h={}", parent_edge, child_x, child_y, child_width, child_height);
+    }
 
     // Boundary protection: use parent's monitor, not mouse position.
     let (work_left, work_top, work_right, _work_bottom) =
