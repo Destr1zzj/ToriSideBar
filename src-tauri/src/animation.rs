@@ -105,10 +105,10 @@ pub fn animate_bar(app_handle: AppHandle) {
                     current_x = target_x;
                     current_y = target_y;
                     moved = true;
-                }
-
-                // Sync actual position to avoid drift
-                if let Ok(pos) = bar.outer_position() {
+                } else if let Ok(pos) = bar.outer_position() {
+                    // Only sync when we didn't just write a new target,
+                    // otherwise outer_position() may race with set_position
+                    // and return the old coordinate.
                     current_x = pos.x;
                     current_y = pos.y;
                 }
