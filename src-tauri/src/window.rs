@@ -301,6 +301,7 @@ pub async fn toggle_app_window(
 
     // Try to restore saved window size and y-position; x is always recalculated
     // based on current sidebar edge and actual window width.
+    // Height is always derived from sidebar (never saved) to avoid drift.
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
@@ -310,9 +311,9 @@ pub async fn toggle_app_window(
                 bar_edge - w as i32
             };
             if is_left {
-                println!("[Tori] toggle_app_window LEFT (saved): bar_edge={} app_x={} app_y={} app_w={} app_h={}", bar_edge, x, saved.y, w, saved.height);
+                println!("[Tori] toggle_app_window LEFT (saved): bar_edge={} app_x={} app_y={} app_w={} bar_inner_h={}", bar_edge, x, saved.y, w, bar_inner_height);
             }
-            (w, saved.height, x, saved.y)
+            (w, bar_inner_height, x, saved.y)
         } else {
             let x = if is_left {
                 bar_edge
@@ -320,7 +321,7 @@ pub async fn toggle_app_window(
                 bar_edge - default_width as i32
             };
             if is_left {
-                println!("[Tori] toggle_app_window LEFT (new): bar_edge={} app_x={} app_y={} app_w={} app_h={}", bar_edge, x, base_y, default_width, base_height);
+                println!("[Tori] toggle_app_window LEFT (new): bar_edge={} app_x={} app_y={} app_w={} bar_inner_h={}", bar_edge, x, base_y, default_width, bar_inner_height);
             }
             (default_width, base_height, x, base_y)
         };

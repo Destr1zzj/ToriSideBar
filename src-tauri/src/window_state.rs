@@ -49,14 +49,14 @@ pub fn get(label: &str) -> Option<WindowState> {
 pub fn save(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
-            println!("[Tori] window_state save '{}': outer_pos=({},{}) inner_size=({},{})", label, pos.x, pos.y, size.width, size.height);
+            println!("[Tori] window_state save '{}': outer_pos=({},{}) inner_w={} (height ignored, always from sidebar)", label, pos.x, pos.y, size.width);
             let mut all = load_all();
             all.insert(
                 label.to_string(),
                 WindowState {
                     y: pos.y,
                     width: size.width,
-                    height: size.height,
+                    height: 0, // height is always derived from sidebar, never saved
                 },
             );
             save_all(&all);
