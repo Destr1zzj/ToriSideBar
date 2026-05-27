@@ -195,10 +195,18 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let bar_pos = bar.inner_position().map_err(|e| e.to_string())?;
-    let bar_size = bar.inner_size().map_err(|e| e.to_string())?;
-
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+
+    // Use inner coordinates for left-docked bar (content flush with left bezel)
+    // and outer coordinates for right-docked bar (window edge flush with right bezel)
+    // to avoid overlap caused by WebView2 inset asymmetry.
+    let (bar_pos, bar_size) = if is_left {
+        (bar.inner_position().map_err(|e| e.to_string())?,
+         bar.inner_size().map_err(|e| e.to_string())?)
+    } else {
+        (bar.outer_position().map_err(|e| e.to_string())?,
+         bar.outer_size().map_err(|e| e.to_string())?)
+    };
 
     // Base position from sidebar.
     let default_width: u32 = 520;
@@ -348,8 +356,14 @@ pub async fn open_child_window(
     let parent = app
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
-    let parent_pos = parent.inner_position().map_err(|e| e.to_string())?;
-    let parent_size = parent.inner_size().map_err(|e| e.to_string())?;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let (parent_pos, parent_size) = if is_left {
+        (parent.inner_position().map_err(|e| e.to_string())?,
+         parent.inner_size().map_err(|e| e.to_string())?)
+    } else {
+        (parent.outer_position().map_err(|e| e.to_string())?,
+         parent.outer_size().map_err(|e| e.to_string())?)
+    };
     println!(
         "[Tori] parent pos=({},{}) size=({},{})",
         parent_pos.x, parent_pos.y, parent_size.width, parent_size.height
