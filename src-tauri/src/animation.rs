@@ -1,12 +1,13 @@
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, PhysicalPosition};
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 
 use crate::monitor::{get_mouse_monitor_work_area, get_mouse_pos};
 use crate::state::*;
 
-const BAR_WIDTH: i32 = 64;
+// Edge offset to compensate for WebView2 content inset.
+const RIGHT_OFFSET: i32 = -6;
 
 /// Animation thread: smoothly slides the bar in/out from the configured edge.
 /// Runs at ~60fps (16ms interval).
@@ -14,6 +15,8 @@ pub fn animate_bar(app_handle: AppHandle) {
     thread::spawn(move || {
         let mut current_x: i32 = 0;
         let mut current_y: i32 = 0;
+        let mut current_width: u32 = 64;
+        let mut current_height: u32 = 0;
         let mut initialized = false;
 
         loop {
@@ -23,17 +26,6 @@ pub fn animate_bar(app_handle: AppHandle) {
                 Some(w) => w,
                 None => continue,
             };
-
-            // When settings panel is open, animation is paused.
-            // We sync current_x to the actual position so no jump happens on close.
-            if BAR_EXPANDED.load(Ordering::SeqCst) {
-                if let Ok(pos) = bar.outer_position() {
-                    current_x = pos.x;
-                    current_y = pos.y;
-                }
-                initialized = true;
-                continue;
-            }
 
             let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
             let screen_left = if is_left {
@@ -51,32 +43,28 @@ pub fn animate_bar(app_handle: AppHandle) {
                 continue;
             }
 
-            // Determine target x:
-            // - If BAR_TARGET_X was explicitly set (expand/collapse), use it
-            // - Otherwise derive from visibility state
-            // Edge offset to compensate for WebView2 content inset.
-            const RIGHT_OFFSET: i32 = -6;
-            let target_x = {
-                let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
-                if explicit != 0 {
-                    // Clear explicit target after reading once
-                    BAR_TARGET_X.store(0, Ordering::SeqCst);
-                    explicit
-                } else {
-                    if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
-                        if is_left { screen_left } else { screen_right - BAR_WIDTH + RIGHT_OFFSET }
-                    } else {
-                        if is_left { screen_left - BAR_WIDTH } else { screen_right + RIGHT_OFFSET }
-                    }
-                }
+            // Width animation (always runs, even when expanded)
+            let target_width = if BAR_EXPANDED.load(Ordering::SeqCst) {
+                280u32
+            } else {
+                64u32
             };
-            let target_y = screen_top;
 
             if !initialized {
-                current_x = target_x;
-                current_y = target_y;
+                if let Ok(pos) = bar.outer_position() {
+                    current_x = pos.x;
+                    current_y = pos.y;
+                }
+                if let Ok(size) = bar.outer_size() {
+                    current_width = size.width;
+                    current_height = size.height;
+                }
                 initialized = true;
                 let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
+                let _ = bar.set_size(PhysicalSize {
+                    width: current_width,
+                    height: current_height,
+                });
                 if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
                     let _ = bar.show();
                 }
@@ -85,41 +73,96 @@ pub fn animate_bar(app_handle: AppHandle) {
 
             let mut moved = false;
 
-            if current_x != target_x {
-                let diff = target_x - current_x;
-
-                // Multi-monitor teleport: if the distance is very large (>500px),
-                // the user moved to a different monitor. Teleport instantly to avoid
-                // the bar flying across the desktop gap.
-                if diff.abs() > 500 {
-                    current_x = target_x;
+            // Width transition
+            if current_width != target_width {
+                let diff = target_width as f32 - current_width as f32;
+                if diff.abs() > 200.0 {
+                    current_width = target_width;
                 } else {
-                    // Ease-out slide: step proportional to remaining distance
-                    let step = ((diff as f32) * 0.18).round() as i32;
-                    let step = diff.signum() * step.abs().clamp(2, 32);
-                    current_x += step;
-
-                    // Snap to target when very close
-                    if (target_x - current_x).abs() <= step.abs() {
-                        current_x = target_x;
+                    let step = (diff * 0.15).round() as i32;
+                    let step = diff.signum() as i32 * step.abs().clamp(1, 12);
+                    current_width = (current_width as i32 + step) as u32;
+                    if (target_width as i32 - current_width as i32).abs() <= step.abs() {
+                        current_width = target_width;
                     }
                 }
                 moved = true;
             }
 
-            if current_y != target_y {
-                // Y changes happen instantly (monitor switch vertical alignment)
-                current_y = target_y;
-                moved = true;
+            // Position logic
+            if BAR_EXPANDED.load(Ordering::SeqCst) {
+                // When expanded: keep bar visible and sync position for width changes
+                let target_x = if is_left {
+                    screen_left
+                } else {
+                    let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
+                    if explicit != 0 {
+                        BAR_TARGET_X.store(0, Ordering::SeqCst);
+                        explicit
+                    } else {
+                        screen_right - current_width as i32 + RIGHT_OFFSET
+                    }
+                };
+                let target_y = screen_top;
+
+                if current_x != target_x || current_y != target_y {
+                    current_x = target_x;
+                    current_y = target_y;
+                    moved = true;
+                }
+
+                // Sync actual position to avoid drift
+                if let Ok(pos) = bar.outer_position() {
+                    current_x = pos.x;
+                    current_y = pos.y;
+                }
+            } else {
+                // Normal position animation (sliding in/out)
+                let target_x = {
+                    let explicit = BAR_TARGET_X.load(Ordering::SeqCst);
+                    if explicit != 0 {
+                        BAR_TARGET_X.store(0, Ordering::SeqCst);
+                        explicit
+                    } else {
+                        if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) {
+                            if is_left { screen_left } else { screen_right - current_width as i32 + RIGHT_OFFSET }
+                        } else {
+                            if is_left { screen_left - current_width as i32 } else { screen_right + RIGHT_OFFSET }
+                        }
+                    }
+                };
+                let target_y = screen_top;
+
+                if current_x != target_x {
+                    let diff = target_x - current_x;
+                    if diff.abs() > 500 {
+                        current_x = target_x;
+                    } else {
+                        let step = ((diff as f32) * 0.18).round() as i32;
+                        let step = diff.signum() * step.abs().clamp(2, 32);
+                        current_x += step;
+                        if (target_x - current_x).abs() <= step.abs() {
+                            current_x = target_x;
+                        }
+                    }
+                    moved = true;
+                }
+
+                if current_y != target_y {
+                    current_y = target_y;
+                    moved = true;
+                }
             }
 
             if moved {
-                // Position FIRST, then show — prevents flash at old location
                 let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
+                let _ = bar.set_size(PhysicalSize {
+                    width: current_width,
+                    height: current_height,
+                });
 
-                // Show window as soon as any part is on-screen
                 let partially_on_screen = if is_left {
-                    current_x + BAR_WIDTH > screen_left
+                    current_x + current_width as i32 > screen_left
                 } else {
                     current_x < screen_right
                 };
@@ -127,24 +170,35 @@ pub fn animate_bar(app_handle: AppHandle) {
                     let _ = bar.show();
                 }
 
-                // Fully off-screen and target is hidden -> hide() to stop intercepting mouse
                 let fully_off_screen = if is_left {
-                    current_x + BAR_WIDTH <= screen_left + 1 && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                    current_x + current_width as i32 <= screen_left + 1
+                        && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                        && !BAR_EXPANDED.load(Ordering::SeqCst)
                 } else {
-                    current_x >= screen_right && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                    current_x >= screen_right
+                        && !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                        && !BAR_EXPANDED.load(Ordering::SeqCst)
                 };
                 if fully_off_screen {
                     let _ = bar.hide();
                 }
             } else {
-                // Even if x/y haven't changed, ensure visibility matches target
                 let is_visible = bar.is_visible().unwrap_or(false);
-                if BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && !is_visible {
+                if (BAR_TARGET_VISIBLE.load(Ordering::SeqCst) || BAR_EXPANDED.load(Ordering::SeqCst))
+                    && !is_visible
+                {
                     let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
+                    let _ = bar.set_size(PhysicalSize {
+                        width: current_width,
+                        height: current_height,
+                    });
                     let _ = bar.show();
-                } else if !BAR_TARGET_VISIBLE.load(Ordering::SeqCst) && is_visible {
+                } else if !BAR_TARGET_VISIBLE.load(Ordering::SeqCst)
+                    && !BAR_EXPANDED.load(Ordering::SeqCst)
+                    && is_visible
+                {
                     let fully_off = if is_left {
-                        current_x + BAR_WIDTH <= screen_left + 1
+                        current_x + current_width as i32 <= screen_left + 1
                     } else {
                         current_x >= screen_right
                     };
