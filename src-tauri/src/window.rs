@@ -275,8 +275,8 @@ pub async fn toggle_app_window(
         (edge_adj, top, inner_h)
     } else {
         let pos = bar.outer_position().map_err(|e| e.to_string())?;
-        let size = bar.outer_size().map_err(|e| e.to_string())?;
-        (pos.x, pos.y, size.height)
+        let inner_h = bar.inner_size().map_err(|e| e.to_string())?.height;
+        (pos.x, pos.y, inner_h)
     };
 
     // Base position from sidebar.
