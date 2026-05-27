@@ -60,11 +60,25 @@ jobs:
         run: |
           Copy-Item -Path "src-tauri/target/release/torisidebar.exe" -Destination "src-tauri/target/release/ToriSidebar_new.exe" -Force
 
+      - name: Resolve release note file
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: resolve_note
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $noteFile = "release-note-$tag.md"
+          if (Test-Path $noteFile) {
+            echo "file=$noteFile" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "file=" >> $env:GITHUB_OUTPUT
+          }
+
       - name: Create or Update Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: src-tauri/target/release/ToriSidebar_new.exe
           generate_release_notes: false
+          body_path: ${{ steps.resolve_note.outputs.file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
