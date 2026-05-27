@@ -257,26 +257,28 @@ pub async fn toggle_app_window(
     // - Left:  GetClientRect+ClientToScreen gives the visible content edge;
     //          +1px micro-adjust eliminates the remaining 1px gap.
     // - Right: outer_position has been verified to produce zero overlap.
+    let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
+    let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
+    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
+    println!("[Tori] toggle_app_window BAR dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+        bar_pos.x, bar_pos.y, bar_outer.width, bar_outer.height, bar_inner.width, bar_inner.height);
+
     let (bar_edge, bar_top, bar_inner_height) = if is_left {
         let edge = get_client_edge(&bar, true)
             .ok_or("Failed to get bar client edge")?;
         let (_, top, _, _) =
             get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
-        let inner_h = bar.inner_size().map_err(|e| e.to_string())?.height;
         // Both bar and app windows are WebView2 windows with the same DWM borders.
         // .position() sets the OUTER position, so we must subtract the DWM border
         // width so the app window's CLIENT left edge aligns with the bar's CLIENT
         // right edge.
-        let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
-        let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
         let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
         let edge_adj = edge - dwm_border;
         println!("[Tori] toggle_app_window LEFT calc: client_edge={} bar_outer_w={} bar_inner_w={} dwm={} adjusted_edge={}", edge, bar_outer.width, bar_inner.width, dwm_border, edge_adj);
-        (edge_adj, top, inner_h)
+        (edge_adj, top, bar_inner.height)
     } else {
-        let pos = bar.outer_position().map_err(|e| e.to_string())?;
-        let inner_h = bar.inner_size().map_err(|e| e.to_string())?.height;
-        (pos.x, pos.y, inner_h)
+        println!("[Tori] toggle_app_window RIGHT calc: bar_pos.x={} bar_pos.y={} bar_inner_h={}", bar_pos.x, bar_pos.y, bar_inner.height);
+        (bar_pos.x, bar_pos.y, bar_inner.height)
     };
 
     // Base position from sidebar.
@@ -327,7 +329,12 @@ pub async fn toggle_app_window(
         .devtools(true)
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
-                let script = INJECT_JS.replace("__WINDOW_LABEL__", &window.label());
+                let label = window.label();
+                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                    println!("[Tori] APP '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+                }
+                let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
         })
@@ -435,24 +442,26 @@ pub async fn open_child_window(
         .ok_or("Parent window not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
+    let parent_inner = parent.inner_size().map_err(|e| e.to_string())?;
+    let parent_outer = parent.outer_size().map_err(|e| e.to_string())?;
+    let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
+    println!("[Tori] open_child_window PARENT dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+        parent_pos.x, parent_pos.y, parent_outer.width, parent_outer.height, parent_inner.width, parent_inner.height);
+
     // Same left/right split as toggle_app_window.
     let (parent_edge, parent_top, parent_inner_height, parent_left) = if is_left {
         let edge = get_client_edge(&parent, true)
             .ok_or("Failed to get parent client edge")?;
         let (left, top, _, _) =
             get_window_rect_raw(&parent).unwrap_or((0, 0, 1920, 1080));
-        let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
         // Same DWM-border compensation as toggle_app_window.
-        let parent_outer = parent.outer_size().map_err(|e| e.to_string())?;
-        let parent_inner = parent.inner_size().map_err(|e| e.to_string())?;
         let dwm_border = (parent_outer.width - parent_inner.width) as i32 / 2;
         let edge_adj = edge - dwm_border;
         println!("[Tori] open_child_window LEFT calc: client_edge={} parent_outer_w={} parent_inner_w={} dwm={} adjusted_edge={}", edge, parent_outer.width, parent_inner.width, dwm_border, edge_adj);
-        (edge_adj, top, inner_h, left)
+        (edge_adj, top, parent_inner.height, left)
     } else {
-        let pos = parent.outer_position().map_err(|e| e.to_string())?;
-        let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
-        (pos.x, pos.y, inner_h, pos.x)
+        println!("[Tori] open_child_window RIGHT calc: parent_pos.x={} parent_pos.y={} parent_inner_h={}", parent_pos.x, parent_pos.y, parent_inner.height);
+        (parent_pos.x, parent_pos.y, parent_inner.height, parent_pos.x)
     };
     println!(
         "[Tori] parent_edge={} parent_top={} parent_inner_height={} parent_left={}",
@@ -518,7 +527,12 @@ pub async fn open_child_window(
         .devtools(true)
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
-                let script = INJECT_JS.replace("__WINDOW_LABEL__", &window.label());
+                let label = window.label();
+                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                    println!("[Tori] CHILD '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+                }
+                let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
         })
