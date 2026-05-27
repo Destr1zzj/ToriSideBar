@@ -10,6 +10,15 @@ use crate::inject::INJECT_JS;
 use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
 use crate::state::*;
 
+/// Returns the isolated data directory for a given webview label.
+/// Each app gets its own folder so cookies, localStorage and cache do not leak across apps.
+fn app_webview_data_dir(app: &AppHandle, label: &str) -> std::path::PathBuf {
+    app.path().app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir().join("ToriSidebar"))
+        .join("webview-data")
+        .join(label)
+}
+
 // WebView2 content inset compensation (pixels).
 // Windows transparent WebView2 renders with a ~6px inset on the left side
 // of the client area.  For the right bar we shift the window left so the
@@ -313,7 +322,11 @@ pub async fn toggle_app_window(
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
 
+    let data_dir = app_webview_data_dir(&app, &label);
+    let _ = std::fs::create_dir_all(&data_dir);
+
     let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
+        .data_directory(data_dir)
         .title(&title)
         .inner_size(app_width as f64, app_height as f64)
         .position(app_x as f64, app_y as f64)
@@ -486,8 +499,12 @@ pub async fn open_child_window(
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| "New Tab".to_string());
 
-    
+    // Child windows share the parent app's data directory so same-origin links
+    // keep the parent's login session.
+    let data_dir = app_webview_data_dir(&app, &parent_label);
+
     let window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
+        .data_directory(data_dir)
         .title(&child_title)
         .inner_size(child_width as f64, child_height as f64)
         .position(final_x as f64, final_y as f64)
