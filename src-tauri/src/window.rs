@@ -314,7 +314,7 @@ pub async fn toggle_app_window(
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
 
-    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
+    let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
         .title(&title)
         .inner_size(app_width as f64, app_height as f64)
         .position(app_x as f64, app_y as f64)
@@ -330,6 +330,10 @@ pub async fn toggle_app_window(
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
+                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                    println!("[Tori] APP '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+                }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
@@ -337,25 +341,13 @@ pub async fn toggle_app_window(
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Force outer size to match sidebar's outer size so inner heights align.
-    // WebView2 sometimes ignores the requested inner height and adds extra DWM
-    // border pixels; setting outer size after build prevents this.
-    let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
-    let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
-    let expected_outer_width = app_width + (bar_outer.width - bar_inner.width);
-    let _ = window.set_size(PhysicalSize { width: expected_outer_width, height: bar_outer.height });
-    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-        println!("[Tori] APP '{}' forced dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-            label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-    }
-
     let init_lang = format!(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
         lang
     );
-    let _ = window.eval(&init_lang);
+    let _ = _window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
-    let _ = window.eval(&script);
+    let _ = _window.eval(&script);
 
     Ok(true)
 }
@@ -520,7 +512,7 @@ pub async fn open_child_window(
         child_label, final_x, final_y, child_width, child_height, child_title
     );
 
-    let window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
+    let _window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
         .title(&child_title)
         .inner_size(child_width as f64, child_height as f64)
         .position(final_x as f64, final_y as f64)
@@ -536,6 +528,10 @@ pub async fn open_child_window(
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
+                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                    println!("[Tori] CHILD '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+                }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
@@ -546,25 +542,15 @@ pub async fn open_child_window(
             e.to_string()
         })?;
 
-    // Force outer size to match parent window's outer size so heights align.
-    let parent_outer = parent.outer_size().map_err(|e| e.to_string())?;
-    let parent_inner = parent.inner_size().map_err(|e| e.to_string())?;
-    let expected_outer_width = child_width + (parent_outer.width - parent_inner.width);
-    let _ = window.set_size(PhysicalSize { width: expected_outer_width, height: parent_outer.height });
-    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-        println!("[Tori] CHILD '{}' forced dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-            child_label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-    }
-
     println!("[Tori] child window created successfully: {}", child_label);
 
     let init_lang = format!(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
         lang
     );
-    let _ = window.eval(&init_lang);
+    let _ = _window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
-    let _ = window.eval(&script);
+    let _ = _window.eval(&script);
 
     let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
     map.entry(parent_label)
