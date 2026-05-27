@@ -73,18 +73,14 @@ pub fn animate_bar(app_handle: AppHandle) {
 
             let mut moved = false;
 
-            // Width transition
+            // Width transition (no teleport — always ease-out frame by frame)
             if current_width != target_width {
                 let diff = target_width as f32 - current_width as f32;
-                if diff.abs() > 200.0 {
+                let step = (diff * 0.15).round() as i32;
+                let step = diff.signum() as i32 * step.abs().clamp(1, 16);
+                current_width = (current_width as i32 + step) as u32;
+                if (target_width as i32 - current_width as i32).abs() <= step.abs() {
                     current_width = target_width;
-                } else {
-                    let step = (diff * 0.15).round() as i32;
-                    let step = diff.signum() as i32 * step.abs().clamp(1, 12);
-                    current_width = (current_width as i32 + step) as u32;
-                    if (target_width as i32 - current_width as i32).abs() <= step.abs() {
-                        current_width = target_width;
-                    }
                 }
                 moved = true;
             }
