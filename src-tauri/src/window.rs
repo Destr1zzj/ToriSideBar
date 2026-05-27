@@ -3,6 +3,8 @@ use tauri::{
     WebviewWindowBuilder,
 };
 use tauri::webview::PageLoadEvent;
+use winapi::um::winuser::GetWindowRect;
+use winapi::shared::windef::RECT;
 
 use crate::inject::INJECT_JS;
 use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
@@ -14,6 +16,20 @@ use crate::state::*;
 // content still touches the right bezel.
 const WEBVIEW2_RIGHT_INSET: i32 = 6;
 const RIGHT_OFFSET: i32 = -WEBVIEW2_RIGHT_INSET;
+
+/// Get the true window rectangle via WinAPI GetWindowRect.
+/// Returns (left, top, right, bottom) in screen coordinates.
+fn get_window_rect_raw(window: &tauri::WebviewWindow) -> Option<(i32, i32, i32, i32)> {
+    unsafe {
+        let hwnd = window.hwnd().ok()?;
+        let mut rect: RECT = std::mem::zeroed();
+        if GetWindowRect(hwnd.0 as _, &mut rect) != 0 {
+            Some((rect.left, rect.top, rect.right, rect.bottom))
+        } else {
+            None
+        }
+    }
+}
 
 // ------------------------------------------------------------------
 // Child-window helpers
@@ -195,8 +211,9 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
-    let bar_size = bar.outer_size().map_err(|e| e.to_string())?;
+    let (bar_left, bar_top, bar_right, _bar_bottom) =
+        get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
+    let _bar_width = (bar_right - bar_left) as u32;
     // Use inner height so saved/restored app windows match the sidebar's
     // usable content height (outer includes invisible DWM borders).
     let bar_inner_height = bar.inner_size().map_err(|e| e.to_string())?.height;
@@ -205,7 +222,7 @@ pub async fn toggle_app_window(
 
     // Base position from sidebar.
     let default_width: u32 = 520;
-    let base_y: i32 = bar_pos.y;
+    let base_y: i32 = bar_top;
     let base_height: u32 = bar_inner_height;
 
     // Try to restore saved window size and y-position; x is always recalculated
@@ -213,17 +230,19 @@ pub async fn toggle_app_window(
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
+            // Place app window flush against the sidebar's true screen edge
+            // via WinAPI GetWindowRect (bypasses Tauri outer_position drift).
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32
+                bar_right
             } else {
-                bar_pos.x - w as i32
+                bar_left - w as i32
             };
             (w, saved.height, x, saved.y)
         } else {
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32
+                bar_right
             } else {
-                bar_pos.x - default_width as i32
+                bar_left - default_width as i32
             };
             (default_width, base_height, x, base_y)
         };
@@ -351,23 +370,23 @@ pub async fn open_child_window(
     let parent = app
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
-    let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
-    let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
+    let (parent_left, _parent_top, parent_right, _parent_bottom) =
+        get_window_rect_raw(&parent).ok_or("Failed to get parent window rect")?;
     let parent_inner_height = parent.inner_size().map_err(|e| e.to_string())?.height;
     println!(
-        "[Tori] parent pos=({},{}) size=({},{})",
-        parent_pos.x, parent_pos.y, parent_size.width, parent_size.height
+        "[Tori] parent rect=({},{},{},{})",
+        parent_left, _parent_top, parent_right - parent_left, _parent_bottom - _parent_top
     );
 
     let child_width: u32 = 480;
     let child_height: u32 = parent_inner_height;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
     let child_x: i32 = if is_left {
-        parent_pos.x + parent_size.width as i32
+        parent_right
     } else {
-        parent_pos.x - child_width as i32
+        parent_left - child_width as i32
     };
-    let child_y: i32 = parent_pos.y;
+    let child_y: i32 = _parent_top;
 
     // Boundary protection: use parent's monitor, not mouse position.
     let (work_left, work_top, work_right, _work_bottom) =
@@ -377,7 +396,7 @@ pub async fn open_child_window(
         work_left, work_top, work_right
     );
     let (final_x, final_y) = if child_x < work_left {
-        (parent_pos.x + 20, parent_pos.y + 20)
+        (parent_left + 20, _parent_top + 20)
     } else {
         (child_x, child_y)
     };
