@@ -195,31 +195,28 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
+    let bar_size = bar.outer_size().map_err(|e| e.to_string())?;
+    // Use inner height so saved/restored app windows match the sidebar's
+    // usable content height (outer includes invisible DWM borders).
+    let bar_inner_height = bar.inner_size().map_err(|e| e.to_string())?.height;
 
-    // Use inner coordinates for left-docked bar (content flush with left bezel)
-    // and outer coordinates for right-docked bar (window edge flush with right bezel)
-    // to avoid overlap caused by WebView2 inset asymmetry.
-    let (bar_pos, bar_size) = if is_left {
-        (bar.inner_position().map_err(|e| e.to_string())?,
-         bar.inner_size().map_err(|e| e.to_string())?)
-    } else {
-        (bar.outer_position().map_err(|e| e.to_string())?,
-         bar.outer_size().map_err(|e| e.to_string())?)
-    };
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
     // Base position from sidebar.
     let default_width: u32 = 520;
     let base_y: i32 = bar_pos.y;
-    let base_height: u32 = bar_size.height;
+    let base_height: u32 = bar_inner_height;
 
     // Try to restore saved window size and y-position; x is always recalculated
     // based on current sidebar edge and actual window width.
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
+            // Nudge 1px closer on left dock to compensate for app window's
+            // own invisible DWM border, eliminating the tiny gap.
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32
+                bar_pos.x + bar_size.width as i32 - 1
             } else {
                 bar_pos.x - w as i32
             };
@@ -356,14 +353,8 @@ pub async fn open_child_window(
     let parent = app
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
-    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
-    let (parent_pos, parent_size) = if is_left {
-        (parent.inner_position().map_err(|e| e.to_string())?,
-         parent.inner_size().map_err(|e| e.to_string())?)
-    } else {
-        (parent.outer_position().map_err(|e| e.to_string())?,
-         parent.outer_size().map_err(|e| e.to_string())?)
-    };
+    let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
+    let parent_size = parent.outer_size().map_err(|e| e.to_string())?;
     println!(
         "[Tori] parent pos=({},{}) size=({},{})",
         parent_pos.x, parent_pos.y, parent_size.width, parent_size.height
