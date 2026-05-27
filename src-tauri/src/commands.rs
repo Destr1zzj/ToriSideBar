@@ -40,6 +40,7 @@ pub async fn open_external_url(url: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn exit_app(app: AppHandle) {
+    crate::state::SHUTDOWN.store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
 }
 

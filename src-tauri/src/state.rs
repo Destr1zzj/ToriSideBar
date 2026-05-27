@@ -54,6 +54,9 @@ pub static BAR_LOCKED: AtomicBool = AtomicBool::new(false);
 /// Dismissed on the first user trigger (mouse edge or shortcut).
 pub static FIRST_RUN_GUIDE_ACTIVE: AtomicBool = AtomicBool::new(false);
 
+/// When true, all background threads should exit gracefully.
+pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
 /// Parent -> child window label mapping.
 pub static CHILD_WINDOWS: LazyLock<Mutex<HashMap<String, Vec<String>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));

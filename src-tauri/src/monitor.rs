@@ -112,9 +112,7 @@ pub const WEBVIEW2_LEFT_INSET: i32 = 5;
 /// subtracts the WebView2 content inset to keep content flush with the bezel.
 pub fn get_leftmost_monitor_left(_app_handle: &tauri::AppHandle) -> i32 {
     let (min_left, _max_right) = get_display_bounds_winapi();
-    let result = min_left - WEBVIEW2_LEFT_INSET;
-    println!("[Tori] get_leftmost_monitor_left: min_left={} inset={} result={}", min_left, WEBVIEW2_LEFT_INSET, result);
-    result
+    min_left - WEBVIEW2_LEFT_INSET
 }
 
 /// Find the rightmost physical edge across all available monitors.

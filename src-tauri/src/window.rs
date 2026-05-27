@@ -24,8 +24,7 @@ fn get_window_rect_raw(window: &tauri::WebviewWindow) -> Option<(i32, i32, i32, 
         let hwnd = window.hwnd().ok()?;
         let mut rect: RECT = std::mem::zeroed();
         if GetWindowRect(hwnd.0 as _, &mut rect) != 0 {
-            println!("[Tori] get_window_rect_raw: left={} top={} right={} bottom={} (w={} h={})", rect.left, rect.top, rect.right, rect.bottom, rect.right - rect.left, rect.bottom - rect.top);
-            Some((rect.left, rect.top, rect.right, rect.bottom))
+                        Some((rect.left, rect.top, rect.right, rect.bottom))
         } else {
             None
         }
@@ -44,8 +43,7 @@ fn get_client_edge(window: &tauri::WebviewWindow, right_edge: bool) -> Option<i3
             y: 0,
         };
         ClientToScreen(hwnd.0 as _, &mut pt);
-        println!("[Tori] get_client_edge: right_edge={} client_rect=({},{},{},{}) pt.x={}", right_edge, client_rect.left, client_rect.top, client_rect.right, client_rect.bottom, pt.x);
-        Some(pt.x)
+                Some(pt.x)
     }
 }
 
@@ -99,8 +97,7 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         let x = leftmost;
         let y = work_top;
         let height = work_bottom - work_top;
-        println!("[Tori] position_bar LEFT: x={} y={} height={} bar_width={}", x, y, height, bar_width);
-        (x, y, height)
+                (x, y, height)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
@@ -120,12 +117,10 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     })
     .map_err(|e| e.to_string())?;
     // Log actual dimensions after set_size
-    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
-        println!("[Tori] position_bar after set_size: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
-    }
-    if let Some((l, t, r, b)) = get_window_rect_raw(&bar) {
-        println!("[Tori] position_bar after GetWindowRect: left={} top={} right={} bottom={} w={} h={}", l, t, r, b, r-l, b-t);
-    }
+    if let (Ok(_outer), Ok(_inner)) = (bar.outer_size(), bar.inner_size()) {
+            }
+    if let Some((_l, _t, _r, _b)) = get_window_rect_raw(&bar) {
+            }
     // Clear explicit target so animation thread re-derives from visibility state
     BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
     Ok(())
@@ -152,8 +147,7 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
         let (_work_left, work_top, _work_right, _work_bottom) =
             get_mouse_monitor_work_area(&app);
-        println!("[Tori] expand_bar LEFT: x={} y={}", leftmost, work_top);
-        (leftmost, work_top)
+                (leftmost, work_top)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
@@ -165,9 +159,8 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
 
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
-    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
-        println!("[Tori] expand_bar after set_position: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
-    }
+    if let (Ok(_outer), Ok(_inner)) = (bar.outer_size(), bar.inner_size()) {
+            }
     // Width is animated by animate_bar thread; do NOT set_size here
     BAR_EXPANDED.store(true, std::sync::atomic::Ordering::SeqCst);
     BAR_TARGET_X.store(x, std::sync::atomic::Ordering::SeqCst);
@@ -185,8 +178,7 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
         let (_work_left, work_top, _work_right, _work_bottom) =
             get_mouse_monitor_work_area(&app);
-        println!("[Tori] collapse_bar LEFT: x={} y={}", leftmost, work_top);
-        (leftmost, work_top)
+                (leftmost, work_top)
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
@@ -198,9 +190,8 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
 
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
-    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
-        println!("[Tori] collapse_bar after set_position: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
-    }
+    if let (Ok(_outer), Ok(_inner)) = (bar.outer_size(), bar.inner_size()) {
+            }
     // Width is animated by animate_bar thread; do NOT set_size here
     BAR_EXPANDED.store(false, std::sync::atomic::Ordering::SeqCst);
     BAR_TARGET_X.store(x, std::sync::atomic::Ordering::SeqCst);
@@ -273,9 +264,7 @@ pub async fn toggle_app_window(
     let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
     let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
     let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
-    println!("[Tori] toggle_app_window BAR dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-        bar_pos.x, bar_pos.y, bar_outer.width, bar_outer.height, bar_inner.width, bar_inner.height);
-
+    
     let (bar_edge, bar_top, bar_inner_height) = if is_left {
         let edge = get_client_edge(&bar, true)
             .ok_or("Failed to get bar client edge")?;
@@ -287,11 +276,9 @@ pub async fn toggle_app_window(
         // right edge.
         let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
         let edge_adj = edge - dwm_border;
-        println!("[Tori] toggle_app_window LEFT calc: client_edge={} bar_outer_w={} bar_inner_w={} dwm={} adjusted_edge={}", edge, bar_outer.width, bar_inner.width, dwm_border, edge_adj);
-        (edge_adj, top, bar_inner.height)
+                (edge_adj, top, bar_inner.height)
     } else {
-        println!("[Tori] toggle_app_window RIGHT calc: bar_pos.x={} bar_pos.y={} bar_inner_h={}", bar_pos.x, bar_pos.y, bar_inner.height);
-        (bar_pos.x, bar_pos.y, bar_inner.height)
+                (bar_pos.x, bar_pos.y, bar_inner.height)
     };
 
     // Base position from sidebar.
@@ -311,8 +298,7 @@ pub async fn toggle_app_window(
                 bar_edge - w as i32
             };
             if is_left {
-                println!("[Tori] toggle_app_window LEFT (saved): bar_edge={} app_x={} app_y={} app_w={} bar_inner_h={}", bar_edge, x, saved.y, w, bar_inner_height);
-            }
+                            }
             (w, bar_inner_height, x, saved.y)
         } else {
             let x = if is_left {
@@ -321,8 +307,7 @@ pub async fn toggle_app_window(
                 bar_edge - default_width as i32
             };
             if is_left {
-                println!("[Tori] toggle_app_window LEFT (new): bar_edge={} app_x={} app_y={} app_w={} bar_inner_h={}", bar_edge, x, base_y, default_width, bar_inner_height);
-            }
+                            }
             (default_width, base_height, x, base_y)
         };
 
@@ -344,10 +329,8 @@ pub async fn toggle_app_window(
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
-                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-                    println!("[Tori] APP '{}' on_page_load dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-                }
+                if let (Ok(_pos), Ok(_outer), Ok(_inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                                    }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
@@ -355,10 +338,8 @@ pub async fn toggle_app_window(
         .build()
         .map_err(|e| e.to_string())?;
     // Log dimensions immediately after build (before any page load or resize)
-    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-        println!("[Tori] APP '{}' build dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-            label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-    }
+    if let (Ok(_pos), Ok(_outer), Ok(_inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+            }
 
     let init_lang = format!(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
@@ -443,11 +424,7 @@ pub async fn open_child_window(
     title: Option<String>,
     lang: String,
 ) -> Result<String, String> {
-    println!(
-        "[Tori] open_child_window called: parent={}, url={}",
-        parent_label, url
-    );
-
+    
     // Close any existing child windows for this parent before opening a new one.
     close_child_windows_impl(&app, &parent_label);
 
@@ -464,9 +441,7 @@ pub async fn open_child_window(
     let parent_inner = parent.inner_size().map_err(|e| e.to_string())?;
     let parent_outer = parent.outer_size().map_err(|e| e.to_string())?;
     let parent_pos = parent.outer_position().map_err(|e| e.to_string())?;
-    println!("[Tori] open_child_window PARENT dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-        parent_pos.x, parent_pos.y, parent_outer.width, parent_outer.height, parent_inner.width, parent_inner.height);
-
+    
     // Same left/right split as toggle_app_window.
     let (parent_edge, parent_top, parent_inner_height, parent_left) = if is_left {
         let edge = get_client_edge(&parent, true)
@@ -476,17 +451,11 @@ pub async fn open_child_window(
         // Same DWM-border compensation as toggle_app_window.
         let dwm_border = (parent_outer.width - parent_inner.width) as i32 / 2;
         let edge_adj = edge - dwm_border;
-        println!("[Tori] open_child_window LEFT calc: client_edge={} parent_outer_w={} parent_inner_w={} dwm={} adjusted_edge={}", edge, parent_outer.width, parent_inner.width, dwm_border, edge_adj);
-        (edge_adj, top, parent_inner.height, left)
+                (edge_adj, top, parent_inner.height, left)
     } else {
-        println!("[Tori] open_child_window RIGHT calc: parent_pos.x={} parent_pos.y={} parent_inner_h={}", parent_pos.x, parent_pos.y, parent_inner.height);
-        (parent_pos.x, parent_pos.y, parent_inner.height, parent_pos.x)
+                (parent_pos.x, parent_pos.y, parent_inner.height, parent_pos.x)
     };
-    println!(
-        "[Tori] parent_edge={} parent_top={} parent_inner_height={} parent_left={}",
-        parent_edge, parent_top, parent_inner_height, parent_left
-    );
-
+    
     let child_width: u32 = 480;
     let child_height: u32 = parent_inner_height;
     let child_x: i32 = if is_left {
@@ -496,26 +465,17 @@ pub async fn open_child_window(
     };
     let child_y: i32 = parent_top;
     if is_left {
-        println!("[Tori] open_child_window LEFT: parent_edge={} child_x={} child_y={} child_w={} child_h={}", parent_edge, child_x, child_y, child_width, child_height);
-    }
+            }
 
     // Boundary protection: use parent's monitor, not mouse position.
-    let (work_left, work_top, work_right, _work_bottom) =
+    let (work_left, _work_top, _work_right, _work_bottom) =
         get_window_monitor_work_area(&parent);
-    println!(
-        "[Tori] parent monitor work_area: left={} top={} right={}",
-        work_left, work_top, work_right
-    );
-    let (final_x, final_y) = if child_x < work_left {
+        let (final_x, final_y) = if child_x < work_left {
         (parent_left + 20, parent_top + 20)
     } else {
         (child_x, child_y)
     };
-    println!(
-        "[Tori] child target pos=({},{}) raw_child_x={}",
-        final_x, final_y, child_x
-    );
-
+    
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -526,11 +486,7 @@ pub async fn open_child_window(
         .filter(|t| !t.is_empty())
         .unwrap_or_else(|| "New Tab".to_string());
 
-    println!(
-        "[Tori] creating child window: label={} pos=({},{}) size=({},{}) title={}",
-        child_label, final_x, final_y, child_width, child_height, child_title
-    );
-
+    
     let window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
         .title(&child_title)
         .inner_size(child_width as f64, child_height as f64)
@@ -547,10 +503,8 @@ pub async fn open_child_window(
         .on_page_load(|window, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
-                if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-                    println!("[Tori] CHILD '{}' on_page_load dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-                        label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-                }
+                if let (Ok(_pos), Ok(_outer), Ok(_inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+                                    }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
                 let _ = window.eval(&script);
             }
@@ -561,13 +515,10 @@ pub async fn open_child_window(
             e.to_string()
         })?;
     // Log dimensions immediately after build
-    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-        println!("[Tori] CHILD '{}' build dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
-            child_label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
-    }
+    if let (Ok(_pos), Ok(_outer), Ok(_inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+            }
 
-    println!("[Tori] child window created successfully: {}", child_label);
-
+    
     let init_lang = format!(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
         lang
