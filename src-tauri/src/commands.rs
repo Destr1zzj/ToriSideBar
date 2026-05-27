@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::state::*;
 
@@ -346,6 +346,8 @@ pub fn reset_window_state(app: AppHandle, label: String) {
     }
     // Remove saved state so next open uses defaults.
     crate::window_state::reset_one(&label);
+    // Notify frontend so the active indicator is cleared.
+    let _ = app.emit("app-closed", label);
 }
 
 // ------------------------------------------------------------------
