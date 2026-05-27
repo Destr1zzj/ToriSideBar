@@ -233,9 +233,18 @@ pub fn read_edge_user_apps() -> Result<Vec<EdgeAppInfo>, String> {
 // Exit confirmation dialog (native, outside the sidebar)
 // ------------------------------------------------------------------
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static EXIT_DIALOG_OPEN: AtomicBool = AtomicBool::new(false);
+
 #[tauri::command]
-pub fn confirm_exit(lang: String) -> bool {
-    use winapi::um::winuser::{MessageBoxW, MB_YESNO, MB_ICONQUESTION, IDYES};
+pub fn confirm_exit(app: AppHandle, lang: String) -> bool {
+    use winapi::um::winuser::{MessageBoxW, MB_YESNO, MB_ICONQUESTION, IDYES, MB_TOPMOST};
+
+    // Prevent multiple concurrent exit dialogs.
+    if EXIT_DIALOG_OPEN.swap(true, Ordering::SeqCst) {
+        return false;
+    }
 
     let (title, msg) = if lang == "zh" {
         ("确认退出", "确定要退出 ToriSidebar 吗？")
@@ -246,15 +255,24 @@ pub fn confirm_exit(lang: String) -> bool {
     let title_w: Vec<u16> = title.encode_utf16().chain(Some(0)).collect();
     let msg_w: Vec<u16> = msg.encode_utf16().chain(Some(0)).collect();
 
-    unsafe {
-        let result = MessageBoxW(
-            std::ptr::null_mut(),
+    // Get the bar window handle so the message box is parented and stays on top.
+    let hwnd = app
+        .get_webview_window("bar")
+        .and_then(|w| w.hwnd().ok())
+        .map(|h| h.0)
+        .unwrap_or(std::ptr::null_mut());
+
+    let result = unsafe {
+        MessageBoxW(
+            hwnd as _,
             msg_w.as_ptr(),
             title_w.as_ptr(),
-            MB_YESNO | MB_ICONQUESTION,
-        );
-        result == IDYES
-    }
+            MB_YESNO | MB_ICONQUESTION | MB_TOPMOST,
+        )
+    };
+
+    EXIT_DIALOG_OPEN.store(false, Ordering::SeqCst);
+    result == IDYES
 }
 
 // ------------------------------------------------------------------

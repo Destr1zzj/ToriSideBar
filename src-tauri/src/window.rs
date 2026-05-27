@@ -3,8 +3,8 @@ use tauri::{
     WebviewWindowBuilder,
 };
 use tauri::webview::PageLoadEvent;
-use winapi::um::winuser::GetWindowRect;
-use winapi::shared::windef::RECT;
+use winapi::um::winuser::{GetWindowRect, GetClientRect, ClientToScreen};
+use winapi::shared::windef::{RECT, POINT};
 
 use crate::inject::INJECT_JS;
 use crate::monitor::{get_leftmost_monitor_left, get_rightmost_monitor_right, get_mouse_monitor_work_area, get_window_monitor_work_area};
@@ -28,6 +28,22 @@ fn get_window_rect_raw(window: &tauri::WebviewWindow) -> Option<(i32, i32, i32, 
         } else {
             None
         }
+    }
+}
+
+/// Get the client area's left or right edge in screen coordinates.
+/// `right_edge=true` returns the right edge, `false` returns the left edge.
+fn get_client_edge(window: &tauri::WebviewWindow, right_edge: bool) -> Option<i32> {
+    unsafe {
+        let hwnd = window.hwnd().ok()?;
+        let mut client_rect: RECT = std::mem::zeroed();
+        GetClientRect(hwnd.0 as _, &mut client_rect);
+        let mut pt = POINT {
+            x: if right_edge { client_rect.right } else { client_rect.left },
+            y: 0,
+        };
+        ClientToScreen(hwnd.0 as _, &mut pt);
+        Some(pt.x)
     }
 }
 
@@ -211,14 +227,16 @@ pub async fn toggle_app_window(
     hide_others("");
 
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
-    let (bar_left, bar_top, bar_right, _bar_bottom) =
+    // Use the client area edge (screen coords) so app windows sit flush
+    // against the sidebar's visible content, not the raw window rect.
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let bar_edge = get_client_edge(&bar, is_left)
+        .ok_or("Failed to get bar client edge")?;
+    let (_, bar_top, _, _) =
         get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
-    let _bar_width = (bar_right - bar_left) as u32;
     // Use inner height so saved/restored app windows match the sidebar's
     // usable content height (outer includes invisible DWM borders).
     let bar_inner_height = bar.inner_size().map_err(|e| e.to_string())?.height;
-
-    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
     // Base position from sidebar.
     let default_width: u32 = 520;
@@ -230,19 +248,19 @@ pub async fn toggle_app_window(
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
-            // Place app window flush against the sidebar's true screen edge
-            // via WinAPI GetWindowRect (bypasses Tauri outer_position drift).
+            // Place app window flush against the sidebar's visible content edge
+            // via WinAPI GetClientRect + ClientToScreen.
             let x = if is_left {
-                bar_right
+                bar_edge
             } else {
-                bar_left - w as i32
+                bar_edge - w as i32
             };
             (w, saved.height, x, saved.y)
         } else {
             let x = if is_left {
-                bar_right
+                bar_edge
             } else {
-                bar_left - default_width as i32
+                bar_edge - default_width as i32
             };
             (default_width, base_height, x, base_y)
         };
@@ -370,23 +388,25 @@ pub async fn open_child_window(
     let parent = app
         .get_webview_window(&parent_label)
         .ok_or("Parent window not found")?;
-    let (parent_left, _parent_top, parent_right, _parent_bottom) =
-        get_window_rect_raw(&parent).ok_or("Failed to get parent window rect")?;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+    let parent_edge = get_client_edge(&parent, is_left)
+        .ok_or("Failed to get parent client edge")?;
     let parent_inner_height = parent.inner_size().map_err(|e| e.to_string())?.height;
+    let (parent_left, parent_top, parent_right, parent_bottom) =
+        get_window_rect_raw(&parent).unwrap_or((0, 0, 1920, 1080));
     println!(
         "[Tori] parent rect=({},{},{},{})",
-        parent_left, _parent_top, parent_right - parent_left, _parent_bottom - _parent_top
+        parent_left, parent_top, parent_right - parent_left, parent_bottom - parent_top
     );
 
     let child_width: u32 = 480;
     let child_height: u32 = parent_inner_height;
-    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
     let child_x: i32 = if is_left {
-        parent_right
+        parent_edge
     } else {
-        parent_left - child_width as i32
+        parent_edge - child_width as i32
     };
-    let child_y: i32 = _parent_top;
+    let child_y: i32 = parent_top;
 
     // Boundary protection: use parent's monitor, not mouse position.
     let (work_left, work_top, work_right, _work_bottom) =
@@ -396,7 +416,7 @@ pub async fn open_child_window(
         work_left, work_top, work_right
     );
     let (final_x, final_y) = if child_x < work_left {
-        (parent_left + 20, _parent_top + 20)
+        (parent_left + 20, parent_top + 20)
     } else {
         (child_x, child_y)
     };
