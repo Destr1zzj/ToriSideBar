@@ -244,7 +244,16 @@ pub async fn toggle_app_window(
         let (_, top, _, _) =
             get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
         let inner_h = bar.inner_size().map_err(|e| e.to_string())?.height;
-        (edge + 1, top, inner_h)
+        // Both bar and app windows are WebView2 windows with the same DWM borders.
+        // .position() sets the OUTER position, so we must subtract the DWM border
+        // width so the app window's CLIENT left edge aligns with the bar's CLIENT
+        // right edge.
+        let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
+        let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
+        let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
+        let edge_adj = edge - dwm_border;
+        println!("[Tori] toggle_app_window LEFT calc: client_edge={} bar_outer_w={} bar_inner_w={} dwm={} adjusted_edge={}", edge, bar_outer.width, bar_inner.width, dwm_border, edge_adj);
+        (edge_adj, top, inner_h)
     } else {
         let pos = bar.outer_position().map_err(|e| e.to_string())?;
         let size = bar.outer_size().map_err(|e| e.to_string())?;
@@ -414,7 +423,13 @@ pub async fn open_child_window(
         let (left, top, _, _) =
             get_window_rect_raw(&parent).unwrap_or((0, 0, 1920, 1080));
         let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
-        (edge + 1, top, inner_h, left)
+        // Same DWM-border compensation as toggle_app_window.
+        let parent_outer = parent.outer_size().map_err(|e| e.to_string())?;
+        let parent_inner = parent.inner_size().map_err(|e| e.to_string())?;
+        let dwm_border = (parent_outer.width - parent_inner.width) as i32 / 2;
+        let edge_adj = edge - dwm_border;
+        println!("[Tori] open_child_window LEFT calc: client_edge={} parent_outer_w={} parent_inner_w={} dwm={} adjusted_edge={}", edge, parent_outer.width, parent_inner.width, dwm_border, edge_adj);
+        (edge_adj, top, inner_h, left)
     } else {
         let pos = parent.outer_position().map_err(|e| e.to_string())?;
         let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
