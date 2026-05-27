@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useI18n } from "../i18n";
 import { AppIcon } from "./AppIcon";
 import { getDomain } from "../utils/favicon";
@@ -24,6 +25,7 @@ export function ManageAppItem({
   onDragStart,
 }: ManageAppItemProps) {
   const { t } = useI18n();
+  const [resetDone, setResetDone] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -31,7 +33,12 @@ export function ManageAppItem({
   };
 
   const handleResetWindow = () => {
-    invoke("reset_window_state", { label: app.label }).catch(() => {});
+    invoke("reset_window_state", { label: app.label })
+      .then(() => {
+        setResetDone(true);
+        setTimeout(() => setResetDone(false), 1500);
+      })
+      .catch(() => {});
   };
 
   return (
@@ -56,12 +63,16 @@ export function ManageAppItem({
       </div>
       <div className="manage-item-actions">
         <button
-          className="manage-action-btn reset-window"
+          className={`manage-action-btn reset-window ${resetDone ? "success" : ""}`}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleResetWindow}
           title={t("resetWindow")}
         >
-          <img src="/icons/reset.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
+          {resetDone ? (
+            <span style={{ fontSize: 14, lineHeight: 1 }}>✓</span>
+          ) : (
+            <img src="/icons/reset.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
+          )}
         </button>
         <button
           className="manage-action-btn delete"

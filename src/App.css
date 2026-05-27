@@ -605,6 +605,12 @@ body {
   color: var(--text-secondary);
 }
 
+.manage-action-btn.reset-window.success {
+  background: #22c55e;
+  color: #fff;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
 .manage-settings {
   border-top: 1px solid var(--border-medium);
   padding: 14px 12px 8px;

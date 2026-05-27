@@ -127,6 +127,16 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
 /// Expand bar width for settings panel.
 #[tauri::command]
 pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
+    // Hide all visible app windows (parents and children) before expanding
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("app-") {
+            if let Ok(visible) = window.is_visible() {
+                if visible {
+                    let _ = window.hide();
+                }
+            }
+        }
+    }
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
@@ -209,8 +219,17 @@ pub async fn toggle_app_window(
     if let Some(existing) = app.get_webview_window(&label) {
         let is_visible = existing.is_visible().map_err(|e| e.to_string())?;
         if is_visible {
-            // Second click: hide the currently visible window.
+            // Second click: hide the parent window and all its children.
             existing.hide().map_err(|e| e.to_string())?;
+            let child_labels = {
+                let map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
+                map.get(&label).cloned().unwrap_or_default()
+            };
+            for child_label in child_labels {
+                if let Some(child) = app.get_webview_window(&child_label) {
+                    let _ = child.hide();
+                }
+            }
             return Ok(false);
         } else {
             // Restore from background: hide others, show self, re-inject nav bar.
