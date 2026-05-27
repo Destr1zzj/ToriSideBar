@@ -408,8 +408,8 @@ pub async fn open_child_window(
         (edge + 1, top, inner_h, left)
     } else {
         let pos = parent.outer_position().map_err(|e| e.to_string())?;
-        let size = parent.outer_size().map_err(|e| e.to_string())?;
-        (pos.x, pos.y, size.height, pos.x)
+        let inner_h = parent.inner_size().map_err(|e| e.to_string())?.height;
+        (pos.x, pos.y, inner_h, pos.x)
     };
     println!(
         "[Tori] parent_edge={} parent_top={} parent_inner_height={} parent_left={}",
