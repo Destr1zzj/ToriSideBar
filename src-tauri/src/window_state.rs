@@ -37,12 +37,19 @@ fn save_all(states: &HashMap<String, WindowState>) {
 }
 
 pub fn get(label: &str) -> Option<WindowState> {
-    load_all().get(label).cloned()
+    let result = load_all().get(label).cloned();
+    if let Some(ref s) = result {
+        println!("[Tori] window_state get '{}': y={} w={} h={}", label, s.y, s.width, s.height);
+    } else {
+        println!("[Tori] window_state get '{}': not found", label);
+    }
+    result
 }
 
 pub fn save(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
+            println!("[Tori] window_state save '{}': outer_pos=({},{}) inner_size=({},{})", label, pos.x, pos.y, size.width, size.height);
             let mut all = load_all();
             all.insert(
                 label.to_string(),

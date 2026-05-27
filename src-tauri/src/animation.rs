@@ -59,6 +59,8 @@ pub fn animate_bar(app_handle: AppHandle) {
                     current_width = size.width;
                     current_height = size.height;
                 }
+                let is_left = BAR_POSITION.load(Ordering::SeqCst) == 0;
+                println!("[Tori] animate_bar init: is_left={} current_x={} current_y={} current_w={} current_h={}", is_left, current_x, current_y, current_width, current_height);
                 initialized = true;
                 let _ = bar.set_position(PhysicalPosition { x: current_x, y: current_y });
                 let _ = bar.set_size(PhysicalSize {

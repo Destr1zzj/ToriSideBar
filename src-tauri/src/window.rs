@@ -119,6 +119,13 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
         height: height as u32,
     })
     .map_err(|e| e.to_string())?;
+    // Log actual dimensions after set_size
+    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
+        println!("[Tori] position_bar after set_size: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
+    }
+    if let Some((l, t, r, b)) = get_window_rect_raw(&bar) {
+        println!("[Tori] position_bar after GetWindowRect: left={} top={} right={} bottom={} w={} h={}", l, t, r, b, r-l, b-t);
+    }
     // Clear explicit target so animation thread re-derives from visibility state
     BAR_TARGET_X.store(0, std::sync::atomic::Ordering::SeqCst);
     Ok(())
@@ -158,6 +165,9 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
 
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
+    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
+        println!("[Tori] expand_bar after set_position: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
+    }
     // Width is animated by animate_bar thread; do NOT set_size here
     BAR_EXPANDED.store(true, std::sync::atomic::Ordering::SeqCst);
     BAR_TARGET_X.store(x, std::sync::atomic::Ordering::SeqCst);
@@ -188,6 +198,9 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
 
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
+    if let (Ok(outer), Ok(inner)) = (bar.outer_size(), bar.inner_size()) {
+        println!("[Tori] collapse_bar after set_position: outer=({},{}) inner=({},{})", outer.width, outer.height, inner.width, inner.height);
+    }
     // Width is animated by animate_bar thread; do NOT set_size here
     BAR_EXPANDED.store(false, std::sync::atomic::Ordering::SeqCst);
     BAR_TARGET_X.store(x, std::sync::atomic::Ordering::SeqCst);
@@ -314,7 +327,7 @@ pub async fn toggle_app_window(
 
     let parsed_url: url::Url = url.parse().map_err(|_| "Invalid URL".to_string())?;
 
-    let _window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
+    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
         .title(&title)
         .inner_size(app_width as f64, app_height as f64)
         .position(app_x as f64, app_y as f64)
@@ -331,7 +344,7 @@ pub async fn toggle_app_window(
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
                 if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-                    println!("[Tori] APP '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                    println!("[Tori] APP '{}' on_page_load dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
                         label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
                 }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
@@ -340,14 +353,19 @@ pub async fn toggle_app_window(
         })
         .build()
         .map_err(|e| e.to_string())?;
+    // Log dimensions immediately after build (before any page load or resize)
+    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+        println!("[Tori] APP '{}' build dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+            label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+    }
 
     let init_lang = format!(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
         lang
     );
-    let _ = _window.eval(&init_lang);
+    let _ = window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
-    let _ = _window.eval(&script);
+    let _ = window.eval(&script);
 
     Ok(true)
 }
@@ -512,7 +530,7 @@ pub async fn open_child_window(
         child_label, final_x, final_y, child_width, child_height, child_title
     );
 
-    let _window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
+    let window = WebviewWindowBuilder::new(&app, &child_label, WebviewUrl::External(parsed_url))
         .title(&child_title)
         .inner_size(child_width as f64, child_height as f64)
         .position(final_x as f64, final_y as f64)
@@ -529,7 +547,7 @@ pub async fn open_child_window(
             if payload.event() == PageLoadEvent::Finished {
                 let label = window.label();
                 if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
-                    println!("[Tori] CHILD '{}' created dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+                    println!("[Tori] CHILD '{}' on_page_load dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
                         label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
                 }
                 let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
@@ -541,6 +559,11 @@ pub async fn open_child_window(
             eprintln!("[Tori] failed to build child window: {}", e);
             e.to_string()
         })?;
+    // Log dimensions immediately after build
+    if let (Ok(pos), Ok(outer), Ok(inner)) = (window.outer_position(), window.outer_size(), window.inner_size()) {
+        println!("[Tori] CHILD '{}' build dims: outer_pos=({},{}) outer_size=({},{}) inner_size=({},{})",
+            child_label, pos.x, pos.y, outer.width, outer.height, inner.width, inner.height);
+    }
 
     println!("[Tori] child window created successfully: {}", child_label);
 
@@ -548,9 +571,9 @@ pub async fn open_child_window(
         r#"localStorage.setItem('tori-sidebar-language', '{}');"#,
         lang
     );
-    let _ = _window.eval(&init_lang);
+    let _ = window.eval(&init_lang);
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &child_label);
-    let _ = _window.eval(&script);
+    let _ = window.eval(&script);
 
     let mut map = CHILD_WINDOWS.lock().unwrap_or_else(|e| e.into_inner());
     map.entry(parent_label)
