@@ -42,7 +42,7 @@ pub fn get(label: &str) -> Option<WindowState> {
 
 pub fn save(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
-        if let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) {
+        if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
             let mut all = load_all();
             all.insert(
                 label.to_string(),

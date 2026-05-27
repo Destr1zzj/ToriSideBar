@@ -211,9 +211,9 @@ pub async fn toggle_app_window(
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
             let x = if is_left {
-                bar_pos.x + bar_size.width as i32 - 1
+                bar_pos.x + bar_size.width as i32
             } else {
-                bar_pos.x - w as i32 + 1
+                bar_pos.x - w as i32
             };
             (w, saved.height, x, saved.y)
         } else {
