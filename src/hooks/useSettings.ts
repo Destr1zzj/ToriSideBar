@@ -5,11 +5,14 @@ import {
   saveBarPosition,
   loadGlobalShortcut,
   saveGlobalShortcut,
+  loadClickOutsideHide,
+  saveClickOutsideHide,
 } from "../utils/storage";
 
 export function useSettings() {
   const [barPosition, setBarPositionState] = useState<"left" | "right">(loadBarPosition);
   const [globalShortcut, setGlobalShortcutState] = useState(loadGlobalShortcut);
+  const [clickOutsideHide, setClickOutsideHideState] = useState(loadClickOutsideHide);
 
   useEffect(() => {
     invoke("set_bar_position", { position: barPosition }).catch(() => {});
@@ -26,5 +29,18 @@ export function useSettings() {
     saveGlobalShortcut(shortcut);
   }, []);
 
-  return { barPosition, setBarPosition, globalShortcut, setGlobalShortcut };
+  const setClickOutsideHide = useCallback((enabled: boolean) => {
+    setClickOutsideHideState(enabled);
+    saveClickOutsideHide(enabled);
+    invoke("set_click_outside_hide", { enabled }).catch(() => {});
+  }, []);
+
+  return {
+    barPosition,
+    setBarPosition,
+    globalShortcut,
+    setGlobalShortcut,
+    clickOutsideHide,
+    setClickOutsideHide,
+  };
 }

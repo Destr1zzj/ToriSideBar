@@ -69,6 +69,7 @@ export const zh: Translations = {
   autostart: "开机自启动",
   on: "开启",
   off: "关闭",
+  clickOutsideHide: "点击外部自动隐藏",
   noApps: "还没有应用",
   addFirstApp: "添加第一个应用",
   resetWindowStates: "重置窗口大小",

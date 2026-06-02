@@ -67,6 +67,7 @@ export const en = {
   autostart: "Launch on Login",
   on: "On",
   off: "Off",
+  clickOutsideHide: "Click Outside to Hide",
   noApps: "No apps yet",
   addFirstApp: "Add your first app",
   resetWindowStates: "Reset Window Sizes",

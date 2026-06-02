@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 
 use crate::monitor::{get_mouse_monitor_work_area, get_mouse_pos};
 use crate::state::*;
@@ -215,6 +215,7 @@ pub fn animate_bar(app_handle: AppHandle) {
 pub fn start_auto_hide(app_handle: AppHandle) {
     thread::spawn(move || {
         let mut was_over = true;
+        let mut lbutton_prev_down = false;
 
         loop {
             if crate::state::SHUTDOWN.load(Ordering::SeqCst) {
@@ -226,17 +227,6 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 Some(w) => w,
                 None => continue,
             };
-
-            // Settings panel open or drag-sort in progress: force visible
-            if BAR_EXPANDED.load(Ordering::SeqCst)
-                || DRAGGING.load(Ordering::SeqCst)
-            {
-                if !was_over {
-                    BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
-                    was_over = true;
-                }
-                continue;
-            }
 
             let bar_pos = match bar.outer_position() {
                 Ok(p) => p,
@@ -251,6 +241,68 @@ pub fn start_auto_hide(app_handle: AppHandle) {
                 Some(m) => m,
                 None => continue,
             };
+
+            // Click-outside-hide detection (runs before expanded/dragging check
+            // so it works in manage mode too)
+            let click_outside_enabled = crate::state::CLICK_OUTSIDE_HIDE.load(Ordering::SeqCst);
+            let lbutton_now = unsafe {
+                winapi::um::winuser::GetAsyncKeyState(winapi::um::winuser::VK_LBUTTON) < 0
+            };
+            let clicked = !lbutton_prev_down && lbutton_now;
+            lbutton_prev_down = lbutton_now;
+
+            if clicked && click_outside_enabled {
+                let in_bar = mouse.0 >= bar_pos.x
+                    && mouse.0 <= bar_pos.x + bar_size.width as i32
+                    && mouse.1 >= bar_pos.y
+                    && mouse.1 <= bar_pos.y + bar_size.height as i32;
+
+                let mut in_app = false;
+                let mut any_app_visible = false;
+                for (label, window) in app_handle.webview_windows() {
+                    if label.starts_with("app-") {
+                        if let Ok(visible) = window.is_visible() {
+                            if visible {
+                                any_app_visible = true;
+                                if let (Ok(pos), Ok(size)) =
+                                    (window.outer_position(), window.outer_size())
+                                {
+                                    if mouse.0 >= pos.x
+                                        && mouse.0 <= pos.x + size.width as i32
+                                        && mouse.1 >= pos.y
+                                        && mouse.1 <= pos.y + size.height as i32
+                                    {
+                                        in_app = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Only trigger when at least one app window is visible and
+                // the click is outside both the bar and all app windows.
+                if any_app_visible && !in_bar && !in_app {
+                    BAR_EXPANDED.store(false, Ordering::SeqCst);
+                    TRIGGER_ACTIVE.store(false, Ordering::SeqCst);
+                    BAR_TARGET_VISIBLE.store(false, Ordering::SeqCst);
+                    was_over = false;
+                    let _ = app_handle.emit("click-outside-hide", ());
+                    continue;
+                }
+            }
+
+            // Settings panel open or drag-sort in progress: force visible
+            if BAR_EXPANDED.load(Ordering::SeqCst)
+                || DRAGGING.load(Ordering::SeqCst)
+            {
+                if !was_over {
+                    BAR_TARGET_VISIBLE.store(true, Ordering::SeqCst);
+                    was_over = true;
+                }
+                lbutton_prev_down = false;
+                continue;
+            }
 
             // Get the monitor where the mouse currently is
             let (work_left, work_top, work_right, _work_bottom) =

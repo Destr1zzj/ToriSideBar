@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { useI18n } from "./i18n";
 import { useApps } from "./hooks/useApps";
@@ -25,7 +26,7 @@ export default function App() {
   const { apps, setApps, addApp, removeApp, reorderApps, resetApps } = useApps();
   const { activeApps, setActiveApps, addActive, removeActive, clearActive } = useActiveApps();
   const { triggerWidth, setTriggerWidth } = useTriggerWidth();
-  const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut } = useSettings();
+  const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut, clickOutsideHide, setClickOutsideHide } = useSettings();
   const {
     localVersion,
     latestVersion,
@@ -205,6 +206,20 @@ export default function App() {
     }
   }, [clearActive]);
 
+  // Click-outside-hide event listener from Rust
+  useEffect(() => {
+    const promise = listen("click-outside-hide", () => {
+      invoke("hide_all_app_windows").catch(() => {});
+      if (isManaging) {
+        setIsManaging(false);
+        setManageAppsExpanded(false);
+      }
+    });
+    return () => {
+      promise.then((fn) => fn());
+    };
+  }, [isManaging]);
+
   const handleRemoveApp = useCallback(
     (id: string) => {
       const app = apps.find((a) => a.id === id);
@@ -312,6 +327,7 @@ export default function App() {
       setGlobalShortcut(config.data.globalShortcut);
       setShortcutInput(config.data.globalShortcut);
       setLang(config.data.language as "en" | "zh");
+      setClickOutsideHide(config.data.clickOutsideHide);
       await invoke("sync_language", { lang: config.data.language });
       setImportStatus({ type: "success", message: t("configImported") });
     } catch (e) {
@@ -463,6 +479,23 @@ export default function App() {
               <button
                 className={`lang-btn ${!autostart ? "active" : ""}`}
                 onClick={() => toggleAutostart(false)}
+              >
+                {t("off")}
+              </button>
+            </div>
+          </div>
+          <div className="setting-row">
+            <label>{t("clickOutsideHide")}</label>
+            <div className="lang-selector">
+              <button
+                className={`lang-btn ${clickOutsideHide ? "active" : ""}`}
+                onClick={() => setClickOutsideHide(true)}
+              >
+                {t("on")}
+              </button>
+              <button
+                className={`lang-btn ${!clickOutsideHide ? "active" : ""}`}
+                onClick={() => setClickOutsideHide(false)}
               >
                 {t("off")}
               </button>

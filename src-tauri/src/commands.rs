@@ -439,6 +439,20 @@ pub async fn check_update() -> Result<UpdateInfo, String> {
 }
 
 // ------------------------------------------------------------------
+// Click outside to hide
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn set_click_outside_hide(enabled: bool) {
+    crate::state::CLICK_OUTSIDE_HIDE.store(enabled, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub fn get_click_outside_hide() -> bool {
+    crate::state::CLICK_OUTSIDE_HIDE.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+// ------------------------------------------------------------------
 // Single-instance guard (Windows)
 // ------------------------------------------------------------------
 

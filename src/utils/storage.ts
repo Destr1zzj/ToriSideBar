@@ -8,6 +8,7 @@ const SHORTCUT_KEY = "tori-sidebar-shortcut";
 const LAST_CHECK_KEY = "tori-sidebar-last-check";
 const UPDATE_AVAILABLE_KEY = "tori-sidebar-update-available";
 const FIRST_RUN_KEY = "tori-sidebar-first-run";
+const CLICK_OUTSIDE_KEY = "tori-sidebar-click-outside-hide";
 
 export function loadApps(): AppItem[] {
   try {
@@ -134,6 +135,18 @@ export function clearFirstRun() {
   localStorage.removeItem(FIRST_RUN_KEY);
 }
 
+export function loadClickOutsideHide(): boolean {
+  try {
+    const stored = localStorage.getItem(CLICK_OUTSIDE_KEY);
+    return stored === "1";
+  } catch { /* ignore */ }
+  return false;
+}
+
+export function saveClickOutsideHide(enabled: boolean) {
+  localStorage.setItem(CLICK_OUTSIDE_KEY, enabled ? "1" : "0");
+}
+
 // ------------------------------------------------------------------
 // Config export / import
 // ------------------------------------------------------------------
@@ -149,6 +162,7 @@ export interface ToriConfig {
     barPosition: "left" | "right";
     globalShortcut: string;
     language: string;
+    clickOutsideHide: boolean;
   };
 }
 
@@ -165,6 +179,7 @@ export function exportConfig(): ToriConfig {
       barPosition: loadBarPosition(),
       globalShortcut: loadGlobalShortcut(),
       language: lang === "zh" || lang === "en" ? lang : "en",
+      clickOutsideHide: loadClickOutsideHide(),
     },
   };
 }
@@ -193,4 +208,5 @@ export function applyConfig(config: ToriConfig) {
   if (d.language === "zh" || d.language === "en") {
     localStorage.setItem("tori-sidebar-language", d.language);
   }
+  if (typeof d.clickOutsideHide === "boolean") saveClickOutsideHide(d.clickOutsideHide);
 }

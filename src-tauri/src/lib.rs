@@ -55,6 +55,7 @@ pub fn run() {
             window::close_app_window,
             window::minimize_app_window,
             window::close_all_app_windows,
+            window::hide_all_app_windows,
             window::open_child_window,
             window::close_child_windows,
             window::handle_esc,
@@ -75,6 +76,8 @@ pub fn run() {
             commands::reset_first_run,
             commands::reset_window_states,
             commands::reset_window_state,
+            commands::set_click_outside_hide,
+            commands::get_click_outside_hide,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

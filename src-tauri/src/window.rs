@@ -399,6 +399,17 @@ pub async fn minimize_app_window(app: AppHandle, label: String) -> Result<(), St
     Ok(())
 }
 
+/// Hide all app windows (without closing them).
+#[tauri::command]
+pub async fn hide_all_app_windows(app: AppHandle) -> Result<(), String> {
+    for (label, window) in app.webview_windows() {
+        if label.starts_with("app-") {
+            let _ = window.hide();
+        }
+    }
+    Ok(())
+}
+
 /// Close all app windows.
 #[tauri::command]
 pub async fn close_all_app_windows(app: AppHandle) -> Result<(), String> {
