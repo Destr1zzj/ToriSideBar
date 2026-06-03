@@ -55,16 +55,23 @@ pub async fn sync_language(app: AppHandle, lang: String) -> Result<(), String> {
     reload: {{ en: 'Reload', zh: '刷新' }},
     openExternal: {{ en: 'Open in browser', zh: '用浏览器打开' }},
     close: {{ en: 'Close', zh: '关闭' }},
+    expand: {{ en: 'Expand', zh: '展开' }},
+    collapse: {{ en: 'Collapse', zh: '收起' }},
   }};
   const bar = document.getElementById('__tori_nav_bar__');
   if (!bar) return;
-  const btns = bar.querySelectorAll('button');
-  if (btns[0]) btns[0].title = texts.back['{}'] || texts.back['en'];
-  if (btns[1]) btns[1].title = texts.reload['{}'] || texts.reload['en'];
-  if (btns[2]) btns[2].title = texts.openExternal['{}'] || texts.openExternal['en'];
-  if (btns[3]) btns[3].title = texts.close['{}'] || texts.close['en'];
+  function setTitle(id, key) {{
+    const btn = document.getElementById(id);
+    if (btn) btn.title = texts[key]['{}'] || texts[key]['en'];
+  }}
+  setTitle('__tori_nav_back__', 'back');
+  setTitle('__tori_nav_reload__', 'reload');
+  setTitle('__tori_nav_open_external__', 'openExternal');
+  setTitle('__tori_nav_minimize__', 'minimize');
+  setTitle('__tori_nav_close__', 'close');
+  setTitle('__tori_nav_toggle__', bar.getAttribute('data-collapsed') === '1' ? 'expand' : 'collapse');
 }})();"#,
-        lang, lang, lang, lang, lang
+        lang, lang
     );
     for (label, window) in app.webview_windows() {
         if label.starts_with("app-") {
