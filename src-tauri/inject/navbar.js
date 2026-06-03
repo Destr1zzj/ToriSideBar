@@ -132,7 +132,7 @@
 
     const toggle = document.createElement('button');
     toggle.id = '__tori_nav_toggle__';
-    toggle.innerHTML = isCollapsed ? '›' : '‹';
+    toggle.innerHTML = isCollapsed ? '▶' : '◀';
     toggle.title = isCollapsed ? (_t.expand[_lang] || _t.expand['en']) : (_t.collapse[_lang] || _t.collapse['en']);
     toggle.style.cssText = btnStyle + ';font-size:15px;font-weight:bold';
     toggle.onclick = function(e) {
@@ -140,7 +140,7 @@
       const collapsed = bar.getAttribute('data-collapsed') === '1';
       bar.setAttribute('data-collapsed', collapsed ? '0' : '1');
       localStorage.setItem('tori-navbar-collapsed', collapsed ? '0' : '1');
-      toggle.innerHTML = collapsed ? '‹' : '›';
+      toggle.innerHTML = collapsed ? '◀' : '▶';
       toggle.title = collapsed ? (_t.collapse[_lang] || _t.collapse['en']) : (_t.expand[_lang] || _t.expand['en']);
       applyCollapsedState();
     };
