@@ -84,35 +84,35 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             if (taskIndex === null) return;
 
             e.preventDefault();
-            // First try the native outdent command, which usually converts an
-            // empty list item back to a normal paragraph and keeps the cursor
-            // in the correct position.
-            const before = vditor.getValue();
-            document.execCommand("outdent", false, undefined);
-            const after = vditor.getValue();
-            // If the DOM command did not change the markdown (e.g. the browser
-            // refused to outdent the task-list item), fall back to editing the
-            // markdown source directly.
-            if (before === after) {
-              try {
-                const lines = before.split("\n");
-                let lineIndex = -1;
-                let count = 0;
-                for (let i = 0; i < lines.length; i++) {
-                  if (/^[-*]\s+\[[xX ]\]\s*/.test(lines[i])) {
-                    if (count === taskIndex) {
-                      lineIndex = i;
-                      break;
-                    }
-                    count++;
+            try {
+              const before = vditor.getValue();
+              const lines = before.split("\n");
+              let lineIndex = -1;
+              let count = 0;
+              for (let i = 0; i < lines.length; i++) {
+                if (/^[-*]\s+\[[xX ]\]\s*/.test(lines[i])) {
+                  if (count === taskIndex) {
+                    lineIndex = i;
+                    break;
                   }
+                  count++;
                 }
-                if (lineIndex < 0) return;
+              }
+              if (lineIndex < 0) return;
 
-                lines.splice(lineIndex, 1, "");
-                vditor.setValue(lines.join("\n"));
-                // setValue resets the cursor; place it at the start of the
-                // newly created empty paragraph so the user can type right away.
+              // Replace the empty task-list item with a paragraph containing a
+              // zero-width space. A plain empty line after a list is ignored by
+              // Markdown, so we need a visible paragraph to place the cursor in.
+              // The zero-width space is invisible and will be removed when the
+              // user starts typing or deletes the empty paragraph.
+              lines.splice(lineIndex, 1, "\u200B");
+              vditor.setValue(lines.join("\n"));
+              vditor.focus();
+
+              // setValue resets the cursor. Wait for Vditor to re-render, then
+              // place the cursor at the very beginning of the newly created
+              // paragraph so the user can type from the start of the line.
+              requestAnimationFrame(() => {
                 setTimeout(() => {
                   const paragraphs = irElement.querySelectorAll('p[data-block="0"]');
                   const lastP = paragraphs[paragraphs.length - 1];
@@ -125,12 +125,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
                     sel.removeAllRanges();
                     sel.addRange(range);
                   }
-                }, 0);
-              } catch {
-                /* ignore */
-              }
+                }, 50);
+              });
+            } catch {
+              /* ignore */
             }
-            vditor.focus();
           });
         },
       });

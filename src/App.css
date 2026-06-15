@@ -1950,7 +1950,15 @@ body {
 
 .milkdown-note-body .vditor-note-editor .vditor-ir pre.vditor-reset p {
   margin: 3px 0 !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  text-indent: 0 !important;
   color: var(--text-secondary) !important;
+}
+
+.milkdown-note-body .vditor-note-editor .vditor-ir pre.vditor-reset ul,
+.milkdown-note-body .vditor-note-editor .vditor-ir pre.vditor-reset ol {
+  padding-left: 1.4em !important;
 }
 
 .milkdown-note-body .vditor-note-editor .vditor-ir pre.vditor-reset li {
