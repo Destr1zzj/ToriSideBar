@@ -77,6 +77,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
           const irElement = (vditor as any).vditor?.ir?.element;
           if (!irElement) return;
 
+          // Use capture phase so our handler runs before Vditor's own keydown
+          // handling and can successfully prevent the default Backspace behavior.
           irElement.addEventListener("keydown", (e: KeyboardEvent) => {
             if (e.key !== "Backspace" && e.key !== "Delete") return;
 
@@ -84,6 +86,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             if (taskIndex === null) return;
 
             e.preventDefault();
+            e.stopImmediatePropagation();
             try {
               const before = vditor.getValue();
               const lines = before.split("\n");
@@ -130,7 +133,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
             } catch {
               /* ignore */
             }
-          });
+          }, true);
         },
       });
 
