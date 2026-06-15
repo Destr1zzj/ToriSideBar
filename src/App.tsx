@@ -29,7 +29,7 @@ export default function App() {
   const { apps, setApps, addApp, removeApp, reorderApps, resetApps } = useApps();
   const { activeApps, setActiveApps, addActive, removeActive, clearActive } = useActiveApps();
   const { triggerWidth, setTriggerWidth } = useTriggerWidth();
-  const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut, clickOutsideHide, setClickOutsideHide } = useSettings();
+  const { barPosition, setBarPosition, globalShortcut, setGlobalShortcut, clickOutsideHide, setClickOutsideHide, autoHideOnAppOpen, setAutoHideOnAppOpen } = useSettings();
   const {
     localVersion,
     latestVersion,
@@ -367,6 +367,7 @@ export default function App() {
       setShortcutInput(config.data.globalShortcut);
       setLang(config.data.language as "en" | "zh");
       setClickOutsideHide(config.data.clickOutsideHide);
+      setAutoHideOnAppOpen(config.data.autoHideOnAppOpen);
       const notes: Note[] = await loadNotes();
       setAllNotes(notes);
       await invoke("sync_language", { lang: config.data.language });
@@ -578,6 +579,23 @@ export default function App() {
               <button
                 className={`lang-btn ${!clickOutsideHide ? "active" : ""}`}
                 onClick={() => setClickOutsideHide(false)}
+              >
+                {t("off")}
+              </button>
+            </div>
+          </div>
+          <div className="setting-row">
+            <label>{t("autoHideOnAppOpen")}</label>
+            <div className="lang-selector">
+              <button
+                className={`lang-btn ${autoHideOnAppOpen ? "active" : ""}`}
+                onClick={() => setAutoHideOnAppOpen(true)}
+              >
+                {t("on")}
+              </button>
+              <button
+                className={`lang-btn ${!autoHideOnAppOpen ? "active" : ""}`}
+                onClick={() => setAutoHideOnAppOpen(false)}
               >
                 {t("off")}
               </button>

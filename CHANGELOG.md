@@ -4,6 +4,28 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## v1.4.1 — 2026-06-15
+
+### Fixed / 修复
+
+- 🐛 Sidebar bottom no longer gets covered by the taskbar. 修复侧边栏底部被任务栏遮挡的问题。
+- 🐛 Opened app webview windows now keep the same height as the sidebar. 打开的应用窗口高度与边栏保持一致。
+
+### Improved / 改进
+
+- ⚙️ New setting: "Auto-hide Sidebar on App Open". 新增设置项「打开应用时自动隐藏边栏」。
+- 🔄 Sidebar automatically reappears after the last app window is closed. 关闭最后一个应用后侧边栏自动恢复显示。
+
+---
+
+## v1.4.0 — 2026-06-15
+
+### New / 新增
+
+- 📝 **Sticky Notes / 桌面便签** — Standalone note windows with `.md` file persistence and Vditor IR editing. 独立便签窗口，`.md` 文件持久化，Vditor IR 编辑。
+
+---
+
 ## v0.5.1 — 2026-05-26
 
 ### Fixed / 修复

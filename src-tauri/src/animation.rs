@@ -53,6 +53,16 @@ pub fn animate_bar(app_handle: AppHandle) {
                 64u32
             };
 
+            // Height is derived from the current monitor work area so it always
+            // matches the usable screen height (excludes taskbar) and stays in
+            // sync with opened app webview windows. A 4px safety margin prevents
+            // any residual overlap with the taskbar.
+            let target_height = if BAR_SCREEN_BOTTOM.load(Ordering::SeqCst) > BAR_SCREEN_TOP.load(Ordering::SeqCst) {
+                (BAR_SCREEN_BOTTOM.load(Ordering::SeqCst) - BAR_SCREEN_TOP.load(Ordering::SeqCst) - 4).max(64) as u32
+            } else {
+                current_height.max(64)
+            };
+
             if !initialized {
                 if let Ok(pos) = bar.outer_position() {
                     current_x = pos.x;
@@ -84,6 +94,18 @@ pub fn animate_bar(app_handle: AppHandle) {
                 current_width = (current_width as i32 + step) as u32;
                 if (target_width as i32 - current_width as i32).abs() <= step.abs() {
                     current_width = target_width;
+                }
+                moved = true;
+            }
+
+            // Height transition: keep the bar in sync with work area height.
+            if current_height != target_height {
+                let diff = target_height as i32 - current_height as i32;
+                let step = (diff as f32 * 0.25).round() as i32;
+                let step = diff.signum() * step.abs().clamp(1, 24);
+                current_height = (current_height as i32 + step) as u32;
+                if (target_height as i32 - current_height as i32).abs() <= step.abs() {
+                    current_height = target_height;
                 }
                 moved = true;
             }
@@ -305,11 +327,12 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             }
 
             // Get the monitor where the mouse currently is
-            let (work_left, work_top, work_right, _work_bottom) =
+            let (work_left, work_top, work_right, work_bottom) =
                 get_mouse_monitor_work_area(&app_handle);
             BAR_SCREEN_LEFT.store(work_left, Ordering::SeqCst);
             BAR_SCREEN_RIGHT.store(work_right, Ordering::SeqCst);
             BAR_SCREEN_TOP.store(work_top, Ordering::SeqCst);
+            BAR_SCREEN_BOTTOM.store(work_bottom, Ordering::SeqCst);
             crate::state::MONITOR_INFO_READY.store(true, Ordering::SeqCst);
 
             let over_bar = mouse.0 >= bar_pos.x
@@ -376,11 +399,12 @@ pub fn start_auto_hide(app_handle: AppHandle) {
             };
 
             let trigger_active = TRIGGER_ACTIVE.load(Ordering::SeqCst);
+            let auto_hide_on_app_open = AUTO_HIDE_ON_APP_OPEN.load(Ordering::SeqCst);
             let should_show = if trigger_active {
-                over_bar || over_app || near_edge || any_app_visible
+                over_bar || over_app || near_edge || (any_app_visible && !auto_hide_on_app_open)
             } else {
                 // Even before trigger is "unlocked", keep bar visible if mouse is over it
-                over_bar || near_edge || any_app_visible
+                over_bar || near_edge || (any_app_visible && !auto_hide_on_app_open)
             };
 
             if should_show && !was_over {

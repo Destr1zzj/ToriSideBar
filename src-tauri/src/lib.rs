@@ -80,6 +80,8 @@ pub fn run() {
             commands::reset_window_state,
             commands::set_click_outside_hide,
             commands::get_click_outside_hide,
+            commands::set_auto_hide_on_app_open,
+            commands::get_auto_hide_on_app_open,
             commands::get_note_storage_path,
             commands::open_note_storage_path,
             commands::read_note_file,

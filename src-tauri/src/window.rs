@@ -83,6 +83,19 @@ fn remove_from_child_map(child_label: &str) {
 }
 
 // ------------------------------------------------------------------
+// Geometry helpers
+// ------------------------------------------------------------------
+
+/// Compute the bar/app window geometry from the current monitor work area.
+/// Returns `(y, height)` where height excludes the taskbar.
+/// A 4px safety margin is subtracted to avoid any residual overlap.
+pub fn compute_bar_geometry(app: &AppHandle) -> (i32, u32) {
+    let (_work_left, work_top, _work_right, work_bottom) = get_mouse_monitor_work_area(app);
+    let height = (work_bottom - work_top - 4).max(64) as u32;
+    (work_top, height)
+}
+
+// ------------------------------------------------------------------
 // Commands
 // ------------------------------------------------------------------
 
@@ -99,31 +112,22 @@ pub async fn position_bar(app: AppHandle) -> Result<(), String> {
     // Left edge is already compensated in monitor.rs (min_left - 5).
     // Right edge uses module-level RIGHT_OFFSET.
 
-    let (x, y, height) = if is_left {
+    let (y, height) = compute_bar_geometry(&app);
+    let x = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, work_bottom) =
-            get_mouse_monitor_work_area(&app);
-        let x = leftmost;
-        let y = work_top;
-        let height = work_bottom - work_top;
-                (x, y, height)
+        leftmost
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, work_bottom) =
-            get_mouse_monitor_work_area(&app);
-        let x = rightmost - bar_width + RIGHT_OFFSET;
-        let y = work_top;
-        let height = work_bottom - work_top;
-        (x, y, height)
+        rightmost - bar_width + RIGHT_OFFSET
     };
 
     bar.set_position(PhysicalPosition { x, y })
         .map_err(|e| e.to_string())?;
     bar.set_size(PhysicalSize {
         width: bar_width as u32,
-        height: height as u32,
+        height,
     })
     .map_err(|e| e.to_string())?;
     // Log actual dimensions after set_size
@@ -152,19 +156,16 @@ pub async fn expand_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
-    let (x, y) = if is_left {
+    let (y, _height) = compute_bar_geometry(&app);
+    let x = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, _work_bottom) =
-            get_mouse_monitor_work_area(&app);
-                (leftmost, work_top)
+        leftmost
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, _work_bottom) =
-            get_mouse_monitor_work_area(&app);
         let current_width = bar.outer_size().map_err(|e| e.to_string())?.width as i32;
-        (rightmost - current_width + RIGHT_OFFSET, work_top)
+        rightmost - current_width + RIGHT_OFFSET
     };
 
     bar.set_position(PhysicalPosition { x, y })
@@ -183,19 +184,16 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
-    let (x, y) = if is_left {
+    let (y, _height) = compute_bar_geometry(&app);
+    let x = if is_left {
         let leftmost = get_leftmost_monitor_left(&app);
         crate::state::BAR_FIXED_LEFT.store(leftmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, _work_bottom) =
-            get_mouse_monitor_work_area(&app);
-                (leftmost, work_top)
+        leftmost
     } else {
         let rightmost = get_rightmost_monitor_right(&app);
         crate::state::BAR_FIXED_RIGHT.store(rightmost, std::sync::atomic::Ordering::SeqCst);
-        let (_work_left, work_top, _work_right, _work_bottom) =
-            get_mouse_monitor_work_area(&app);
         let current_width = bar.outer_size().map_err(|e| e.to_string())?.width as i32;
-        (rightmost - current_width + RIGHT_OFFSET, work_top)
+        rightmost - current_width + RIGHT_OFFSET
     };
 
     bar.set_position(PhysicalPosition { x, y })
@@ -206,6 +204,44 @@ pub async fn collapse_bar(app: AppHandle) -> Result<(), String> {
     BAR_EXPANDED.store(false, std::sync::atomic::Ordering::SeqCst);
     BAR_TARGET_X.store(x, std::sync::atomic::Ordering::SeqCst);
     Ok(())
+}
+
+/// Count currently visible parent app windows.
+fn count_visible_app_windows(app: &AppHandle) -> u32 {
+    let mut count = 0u32;
+    for (l, window) in app.webview_windows() {
+        if l.starts_with("app-") && !l.contains("-tab-") {
+            if let Ok(visible) = window.is_visible() {
+                if visible {
+                    count += 1;
+                }
+            }
+        }
+    }
+    count
+}
+
+/// Recompute and store the visible app window count.
+fn update_visible_app_count(app: &AppHandle) {
+    let count = count_visible_app_windows(app);
+    crate::state::VISIBLE_APP_COUNT.store(count, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Sync the height of an existing app window to the current bar geometry,
+/// preserving its current width and horizontal position.
+fn sync_app_window_height(window: &tauri::WebviewWindow, height: u32) {
+    let _ = window.set_size(PhysicalSize {
+        width: window.inner_size().map(|s| s.width).unwrap_or(520),
+        height,
+    });
+}
+
+/// Show the sidebar again when the last app window is closed/hidden.
+fn show_bar_if_no_apps(app: &AppHandle) {
+    if count_visible_app_windows(app) == 0 {
+        crate::state::BAR_TARGET_VISIBLE.store(true, std::sync::atomic::Ordering::SeqCst);
+        crate::state::VISIBLE_APP_COUNT.store(0, std::sync::atomic::Ordering::SeqCst);
+    }
 }
 
 /// Toggle app window: show if hidden, hide if visible, create if not exists.
@@ -230,6 +266,10 @@ pub async fn toggle_app_window(
         }
     };
 
+    let (base_y, base_height) = compute_bar_geometry(&app);
+    let auto_hide_on_app_open = crate::state::AUTO_HIDE_ON_APP_OPEN
+        .load(std::sync::atomic::Ordering::SeqCst);
+
     if let Some(existing) = app.get_webview_window(&label) {
         let is_visible = existing.is_visible().map_err(|e| e.to_string())?;
         if is_visible {
@@ -244,10 +284,13 @@ pub async fn toggle_app_window(
                     let _ = child.hide();
                 }
             }
+            update_visible_app_count(&app);
+            show_bar_if_no_apps(&app);
             return Ok(false);
         } else {
-            // Restore from background: hide others, show self, re-inject nav bar.
+            // Restore from background: hide others, sync height, show self, re-inject nav bar.
             hide_others(&label);
+            sync_app_window_height(&existing, base_height);
             existing.show().map_err(|e| e.to_string())?;
             existing.set_focus().map_err(|e| e.to_string())?;
             let init_lang = format!(
@@ -257,6 +300,10 @@ pub async fn toggle_app_window(
             let _ = existing.eval(&init_lang);
             let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
             let _ = existing.eval(&script);
+            update_visible_app_count(&app);
+            if auto_hide_on_app_open {
+                crate::state::BAR_TARGET_VISIBLE.store(false, std::sync::atomic::Ordering::SeqCst);
+            }
             return Ok(true);
         }
     }
@@ -275,30 +322,26 @@ pub async fn toggle_app_window(
     let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
     let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
     
-    let (bar_edge, bar_top, bar_inner_height) = if is_left {
+    let bar_edge = if is_left {
         let edge = get_client_edge(&bar, true)
             .ok_or("Failed to get bar client edge")?;
-        let (_, top, _, _) =
-            get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
         // Both bar and app windows are WebView2 windows with the same DWM borders.
         // .position() sets the OUTER position, so we must subtract the DWM border
         // width so the app window's CLIENT left edge aligns with the bar's CLIENT
         // right edge.
         let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
-        let edge_adj = edge - dwm_border;
-                (edge_adj, top, bar_inner.height)
+        edge - dwm_border
     } else {
-                (bar_pos.x, bar_pos.y, bar_inner.height)
+        bar_pos.x
     };
 
     // Base position from sidebar.
     let default_width: u32 = 520;
-    let base_y: i32 = bar_top;
-    let base_height: u32 = bar_inner_height;
 
     // Try to restore saved window size and y-position; x is always recalculated
     // based on current sidebar edge and actual window width.
-    // Height is always derived from sidebar (never saved) to avoid drift.
+    // Height is always derived from the current monitor work area (never saved)
+    // so app windows stay in sync with the sidebar and exclude the taskbar.
     let (app_width, app_height, app_x, app_y) =
         if let Some(saved) = crate::window_state::get(&label) {
             let w = saved.width;
@@ -309,7 +352,7 @@ pub async fn toggle_app_window(
             };
             if is_left {
                             }
-            (w, bar_inner_height, x, saved.y)
+            (w, base_height, x, saved.y)
         } else {
             let x = if is_left {
                 bar_edge
@@ -363,6 +406,11 @@ pub async fn toggle_app_window(
     let script = INJECT_JS.replace("__WINDOW_LABEL__", &label);
     let _ = window.eval(&script);
 
+    update_visible_app_count(&app);
+    if auto_hide_on_app_open {
+        crate::state::BAR_TARGET_VISIBLE.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+
     Ok(true)
 }
 
@@ -383,6 +431,8 @@ pub async fn close_app_window(app: AppHandle, label: String) -> Result<(), Strin
     if let Some(window) = app.get_webview_window(&label) {
         window.close().map_err(|e| e.to_string())?;
     }
+    update_visible_app_count(&app);
+    show_bar_if_no_apps(&app);
     let _ = app.emit("app-closed", label);
     Ok(())
 }
@@ -397,6 +447,8 @@ pub async fn minimize_app_window(app: AppHandle, label: String) -> Result<(), St
     if let Some(window) = app.get_webview_window(&label) {
         window.hide().map_err(|e| e.to_string())?;
     }
+    update_visible_app_count(&app);
+    show_bar_if_no_apps(&app);
     Ok(())
 }
 
@@ -408,6 +460,8 @@ pub async fn hide_all_app_windows(app: AppHandle) -> Result<(), String> {
             let _ = window.hide();
         }
     }
+    update_visible_app_count(&app);
+    show_bar_if_no_apps(&app);
     Ok(())
 }
 
@@ -436,6 +490,8 @@ pub async fn close_all_app_windows(app: AppHandle) -> Result<(), String> {
             let _ = app.emit("app-closed", label);
         }
     }
+    update_visible_app_count(&app);
+    show_bar_if_no_apps(&app);
     Ok(())
 }
 
@@ -695,19 +751,17 @@ pub async fn open_tools_window(app: AppHandle) -> Result<(), String> {
     let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
     let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
 
+    let (bar_top, _bar_height) = compute_bar_geometry(&app);
     let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
     let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
-    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
 
-    let (bar_edge, bar_top) = if is_left {
+    let bar_edge = if is_left {
         let edge = get_client_edge(&bar, true)
             .ok_or("Failed to get bar client edge")?;
-        let (_, top, _, _) =
-            get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
         let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
-        (edge - dwm_border, top)
+        edge - dwm_border
     } else {
-        (bar_pos.x, bar_pos.y)
+        bar.outer_position().map_err(|e| e.to_string())?.x
     };
 
     let default_width: u32 = 280;

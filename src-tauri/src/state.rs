@@ -26,6 +26,9 @@ pub static BAR_SCREEN_LEFT: AtomicI32 = AtomicI32::new(0);
 /// Current monitor's work_area top edge (set by decision thread, read by animation thread).
 pub static BAR_SCREEN_TOP: AtomicI32 = AtomicI32::new(0);
 
+/// Current monitor's work_area bottom edge (set by decision thread, read by animation thread).
+pub static BAR_SCREEN_BOTTOM: AtomicI32 = AtomicI32::new(0);
+
 /// Bar position: 0 = left edge, 1 = right edge.
 pub static BAR_POSITION: AtomicU8 = AtomicU8::new(1);
 
@@ -56,6 +59,12 @@ pub static FIRST_RUN_GUIDE_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 /// When true, clicking outside the bar/app windows hides them.
 pub static CLICK_OUTSIDE_HIDE: AtomicBool = AtomicBool::new(false);
+
+/// When true, opening an app window automatically hides the sidebar.
+pub static AUTO_HIDE_ON_APP_OPEN: AtomicBool = AtomicBool::new(false);
+
+/// Number of currently visible app windows (parents only, excluding children).
+pub static VISIBLE_APP_COUNT: AtomicU32 = AtomicU32::new(0);
 
 /// When true, all background threads should exit gracefully.
 pub static SHUTDOWN: AtomicBool = AtomicBool::new(false);

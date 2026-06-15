@@ -553,6 +553,20 @@ pub fn get_click_outside_hide() -> bool {
 }
 
 // ------------------------------------------------------------------
+// Auto-hide sidebar when opening an app
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn set_auto_hide_on_app_open(enabled: bool) {
+    crate::state::AUTO_HIDE_ON_APP_OPEN.store(enabled, std::sync::atomic::Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub fn get_auto_hide_on_app_open() -> bool {
+    crate::state::AUTO_HIDE_ON_APP_OPEN.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+// ------------------------------------------------------------------
 // Single-instance guard (Windows)
 // ------------------------------------------------------------------
 

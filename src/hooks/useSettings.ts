@@ -7,15 +7,19 @@ import {
   saveGlobalShortcut,
   loadClickOutsideHide,
   saveClickOutsideHide,
+  loadAutoHideOnAppOpen,
+  saveAutoHideOnAppOpen,
 } from "../utils/storage";
 
 export function useSettings() {
   const [barPosition, setBarPositionState] = useState<"left" | "right">(loadBarPosition);
   const [globalShortcut, setGlobalShortcutState] = useState(loadGlobalShortcut);
   const [clickOutsideHide, setClickOutsideHideState] = useState(loadClickOutsideHide);
+  const [autoHideOnAppOpen, setAutoHideOnAppOpenState] = useState(loadAutoHideOnAppOpen);
 
   useEffect(() => {
     invoke("set_bar_position", { position: barPosition }).catch(() => {});
+    invoke("set_auto_hide_on_app_open", { enabled: autoHideOnAppOpen }).catch(() => {});
   }, []);
 
   const setBarPosition = useCallback((pos: "left" | "right") => {
@@ -35,6 +39,12 @@ export function useSettings() {
     invoke("set_click_outside_hide", { enabled }).catch(() => {});
   }, []);
 
+  const setAutoHideOnAppOpen = useCallback((enabled: boolean) => {
+    setAutoHideOnAppOpenState(enabled);
+    saveAutoHideOnAppOpen(enabled);
+    invoke("set_auto_hide_on_app_open", { enabled }).catch(() => {});
+  }, []);
+
   return {
     barPosition,
     setBarPosition,
@@ -42,5 +52,7 @@ export function useSettings() {
     setGlobalShortcut,
     clickOutsideHide,
     setClickOutsideHide,
+    autoHideOnAppOpen,
+    setAutoHideOnAppOpen,
   };
 }

@@ -68,6 +68,7 @@ export const en = {
   on: "On",
   off: "Off",
   clickOutsideHide: "Click Outside to Hide",
+  autoHideOnAppOpen: "Auto-hide Sidebar on App Open",
   noApps: "No apps yet",
   addFirstApp: "Add your first app",
   resetWindowStates: "Reset Window Sizes",

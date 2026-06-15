@@ -10,6 +10,7 @@ const LAST_CHECK_KEY = "tori-sidebar-last-check";
 const UPDATE_AVAILABLE_KEY = "tori-sidebar-update-available";
 const FIRST_RUN_KEY = "tori-sidebar-first-run";
 const CLICK_OUTSIDE_KEY = "tori-sidebar-click-outside-hide";
+const AUTO_HIDE_ON_APP_OPEN_KEY = "tori-sidebar-auto-hide-on-app-open";
 const NOTES_KEY = "tori-sidebar-notes";
 const NOTE_OPACITY_KEY = "tori-sidebar-note-opacity";
 
@@ -158,6 +159,18 @@ export function loadClickOutsideHide(): boolean {
 
 export function saveClickOutsideHide(enabled: boolean) {
   localStorage.setItem(CLICK_OUTSIDE_KEY, enabled ? "1" : "0");
+}
+
+export function loadAutoHideOnAppOpen(): boolean {
+  try {
+    const stored = localStorage.getItem(AUTO_HIDE_ON_APP_OPEN_KEY);
+    return stored === "1";
+  } catch { /* ignore */ }
+  return false;
+}
+
+export function saveAutoHideOnAppOpen(enabled: boolean) {
+  localStorage.setItem(AUTO_HIDE_ON_APP_OPEN_KEY, enabled ? "1" : "0");
 }
 
 function extractTitle(content: string): string {
@@ -324,6 +337,7 @@ export interface ToriConfig {
     globalShortcut: string;
     language: string;
     clickOutsideHide: boolean;
+    autoHideOnAppOpen: boolean;
     notes: Note[];
   };
 }
@@ -332,7 +346,7 @@ export async function exportConfig(): Promise<ToriConfig> {
   const lang = localStorage.getItem("tori-sidebar-language") || "en";
   return {
     exportVersion: 1,
-    appVersion: "0.6.2",
+    appVersion: "1.4.1",
     exportedAt: new Date().toISOString(),
     data: {
       apps: loadApps(),
@@ -342,6 +356,7 @@ export async function exportConfig(): Promise<ToriConfig> {
       globalShortcut: loadGlobalShortcut(),
       language: lang === "zh" || lang === "en" ? lang : "en",
       clickOutsideHide: loadClickOutsideHide(),
+      autoHideOnAppOpen: loadAutoHideOnAppOpen(),
       notes: await loadNotes(),
     },
   };
@@ -372,5 +387,6 @@ export async function applyConfig(config: ToriConfig) {
     localStorage.setItem("tori-sidebar-language", d.language);
   }
   if (typeof d.clickOutsideHide === "boolean") saveClickOutsideHide(d.clickOutsideHide);
+  if (typeof d.autoHideOnAppOpen === "boolean") saveAutoHideOnAppOpen(d.autoHideOnAppOpen);
   if (Array.isArray(d.notes)) await saveNotes(d.notes);
 }
