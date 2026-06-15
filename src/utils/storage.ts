@@ -346,7 +346,7 @@ export async function exportConfig(): Promise<ToriConfig> {
   const lang = localStorage.getItem("tori-sidebar-language") || "en";
   return {
     exportVersion: 1,
-    appVersion: "1.4.1",
+    appVersion: "1.4.2",
     exportedAt: new Date().toISOString(),
     data: {
       apps: loadApps(),

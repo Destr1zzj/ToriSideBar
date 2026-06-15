@@ -4,6 +4,14 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## v1.4.2 — 2026-06-15
+
+### Fixed / 修复
+
+- 🐛 Fixed sticky note task-list backspace getting stuck on empty checkbox items. 修复便签任务列表空复选框项按退格键卡死的问题。
+
+---
+
 ## v1.4.1 — 2026-06-15
 
 ### Fixed / 修复

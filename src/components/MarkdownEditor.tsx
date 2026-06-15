@@ -11,6 +11,38 @@ interface MarkdownEditorProps {
   onChange: (markdown: string) => void;
 }
 
+/** Check whether the DOM selection is inside an empty task-list item. */
+function getEmptyTaskItemIndex(): number | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+
+  let node: Node | null = selection.getRangeAt(0).startContainer;
+  if (node.nodeType === Node.TEXT_NODE) {
+    node = node.parentElement;
+  }
+  if (!(node instanceof Element)) return null;
+
+  const li = node.closest("li");
+  if (!li) return null;
+
+  // Must contain a checkbox to be a task item.
+  if (!li.querySelector('input[type="checkbox"]')) return null;
+
+  // Consider the item empty if, after removing the checkbox, there is no text.
+  const clone = li.cloneNode(true) as HTMLElement;
+  clone.querySelector('input[type="checkbox"]')?.remove();
+  const text = clone.textContent?.replace(/\u200B/g, "").trim();
+  if (text && text.length > 0) return null;
+
+  const parent = li.parentElement;
+  if (!parent) return null;
+  const siblings = Array.from(parent.children).filter(
+    (el) => el.tagName === "LI"
+  );
+  const index = siblings.indexOf(li);
+  return index >= 0 ? index : null;
+}
+
 export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(
   ({ markdown, onChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -37,6 +69,44 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
         after: () => {
           vditorRef.current = vditor;
           setReady(true);
+
+          // Workaround for Vditor IR mode: pressing Backspace inside an empty
+          // task-list item gets stuck because the non-editable checkbox blocks
+          // the default contenteditable deletion. Detect this state and remove
+          // the empty task item from the markdown source.
+          const irElement = (vditor as any).vditor?.ir?.element;
+          if (!irElement) return;
+
+          irElement.addEventListener("keydown", (e: KeyboardEvent) => {
+            if (e.key !== "Backspace" && e.key !== "Delete") return;
+
+            const taskIndex = getEmptyTaskItemIndex();
+            if (taskIndex === null) return;
+
+            e.preventDefault();
+            try {
+              const value = vditor.getValue();
+              const lines = value.split("\n");
+              let lineIndex = -1;
+              let count = 0;
+              for (let i = 0; i < lines.length; i++) {
+                if (/^[-*]\s+\[[xX ]\]\s*/.test(lines[i])) {
+                  if (count === taskIndex) {
+                    lineIndex = i;
+                    break;
+                  }
+                  count++;
+                }
+              }
+              if (lineIndex < 0) return;
+
+              lines.splice(lineIndex, 1);
+              vditor.setValue(lines.join("\n"));
+              vditor.focus();
+            } catch {
+              /* ignore */
+            }
+          });
         },
       });
 
