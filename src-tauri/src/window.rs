@@ -2,6 +2,7 @@ use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl,
     WebviewWindowBuilder,
 };
+use tauri::window::Color;
 use tauri::webview::PageLoadEvent;
 use winapi::um::winuser::{GetWindowRect, GetClientRect, ClientToScreen};
 use winapi::shared::windef::{RECT, POINT};
@@ -607,4 +608,157 @@ pub async fn handle_esc(app: AppHandle) -> Result<bool, String> {
     }
 
     Ok(false)
+}
+
+/// Open a standalone sticky-note window for the given note id.
+/// The window loads `index.html?window=note&noteId=xxx` and renders
+/// the React NoteWindow component.
+#[tauri::command]
+pub async fn open_note_window(app: AppHandle, note_id: String) -> Result<(), String> {
+    let label = format!("note-{}", note_id);
+
+    // If already open, just bring it to front.
+    if let Some(existing) = app.get_webview_window(&label) {
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let default_width: u32 = 360;
+    let default_height: u32 = 480;
+
+    let (default_x, default_y) = {
+        let (work_left, work_top, work_right, work_bottom) = get_mouse_monitor_work_area(&app);
+        let x = work_left + (work_right - work_left - default_width as i32) / 2;
+        let y = work_top + (work_bottom - work_top - default_height as i32) / 2;
+        (x, y)
+    };
+
+    let saved = crate::window_state::get_note(&label);
+    let (width, height, x, y) = saved.map_or(
+        (default_width, default_height, default_x, default_y),
+        |s| (
+            if s.width > 0 { s.width } else { default_width },
+            if s.height > 0 { s.height } else { default_height },
+            s.x,
+            s.y,
+        ),
+    );
+
+    let url = format!("index.html?window=note&noteId={}", note_id);
+
+    let window = WebviewWindowBuilder::new(
+        &app,
+        &label,
+        WebviewUrl::App(url.parse().map_err(|_| "Invalid URL".to_string())?),
+    )
+    .title("Tori Note")
+    .inner_size(width as f64, height as f64)
+    .position(x as f64, y as f64)
+    .decorations(false)
+    .transparent(true)
+    .background_color(Color(0, 0, 0, 0))
+    .always_on_top(true)
+    .skip_taskbar(false)
+    .resizable(true)
+    .maximizable(false)
+    .minimizable(false)
+    .closable(true)
+    .visible(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let app_handle = app.clone();
+    let label_clone = label.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::CloseRequested { .. } = event {
+            crate::window_state::save_note(&app_handle, &label_clone);
+            let _ = app_handle.emit("note-window-closed", label_clone.clone());
+        }
+    });
+
+    Ok(())
+}
+
+/// Open a standalone tools window that docks to the sidebar edge.
+/// Loads `index.html?window=tools` and renders the React ToolsWindow component.
+#[tauri::command]
+pub async fn open_tools_window(app: AppHandle) -> Result<(), String> {
+    const LABEL: &str = "tools";
+
+    if let Some(existing) = app.get_webview_window(LABEL) {
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let bar = app.get_webview_window("bar").ok_or("Bar not found")?;
+    let is_left = crate::state::BAR_POSITION.load(std::sync::atomic::Ordering::SeqCst) == 0;
+
+    let bar_inner = bar.inner_size().map_err(|e| e.to_string())?;
+    let bar_outer = bar.outer_size().map_err(|e| e.to_string())?;
+    let bar_pos = bar.outer_position().map_err(|e| e.to_string())?;
+
+    let (bar_edge, bar_top) = if is_left {
+        let edge = get_client_edge(&bar, true)
+            .ok_or("Failed to get bar client edge")?;
+        let (_, top, _, _) =
+            get_window_rect_raw(&bar).ok_or("Failed to get bar window rect")?;
+        let dwm_border = (bar_outer.width - bar_inner.width) as i32 / 2;
+        (edge - dwm_border, top)
+    } else {
+        (bar_pos.x, bar_pos.y)
+    };
+
+    let default_width: u32 = 280;
+    let default_height: u32 = 480;
+
+    let saved = crate::window_state::get_note(LABEL);
+    let (width, height, x, y) = saved.map_or(
+        (default_width, default_height, 0, 0),
+        |s| (
+            if s.width > 0 { s.width } else { default_width },
+            if s.height > 0 { s.height } else { default_height },
+            s.x,
+            s.y,
+        ),
+    );
+
+    let (final_x, final_y) = if x != 0 || y != 0 {
+        (x, y)
+    } else {
+        let pos_x = if is_left {
+            bar_edge
+        } else {
+            bar_edge - default_width as i32
+        };
+        (pos_x, bar_top)
+    };
+
+    let tools_url: std::path::PathBuf = "index.html?window=tools".into();
+
+    let window = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App(tools_url))
+        .title("Tori Tools")
+    .inner_size(width as f64, height as f64)
+    .position(final_x as f64, final_y as f64)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(false)
+    .resizable(true)
+    .maximizable(false)
+    .minimizable(false)
+    .closable(true)
+    .visible(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let app_handle = app.clone();
+    window.on_window_event(move |event| {
+        if let tauri::WindowEvent::CloseRequested { .. } = event {
+            crate::window_state::save_note(&app_handle, LABEL);
+        }
+    });
+
+    Ok(())
 }

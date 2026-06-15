@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+export { PRESET_THEMES, DEFAULT_THEME } from "../themes";
 import { PRESET_THEMES, DEFAULT_THEME, generateCustomTheme, type ThemeVars, type CustomColors } from "../themes";
 
 const THEME_KEY = "tori-sidebar-theme";

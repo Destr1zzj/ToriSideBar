@@ -71,7 +71,7 @@ export function ManageAppItem({
           {resetDone ? (
             <span style={{ fontSize: 14, lineHeight: 1 }}>✓</span>
           ) : (
-            <img src="/icons/reset.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
+            <img src="/icons/reset.png" style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} />
           )}
         </button>
         <button
@@ -80,7 +80,7 @@ export function ManageAppItem({
           onClick={() => onRemove(app.id)}
           title={t("delete")}
         >
-          <img src="/icons/Delete.png" style={{ width: 14, height: 14, filter: 'var(--icon-filter)' }} />
+          <img src="/icons/Delete.png" style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} />
         </button>
       </div>
     </div>

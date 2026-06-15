@@ -59,6 +59,8 @@ pub fn run() {
             window::open_child_window,
             window::close_child_windows,
             window::handle_esc,
+            window::open_note_window,
+            window::open_tools_window,
             commands::set_dragging,
             commands::open_external_url,
             commands::exit_app,
@@ -78,6 +80,12 @@ pub fn run() {
             commands::reset_window_state,
             commands::set_click_outside_hide,
             commands::get_click_outside_hide,
+            commands::get_note_storage_path,
+            commands::open_note_storage_path,
+            commands::read_note_file,
+            commands::write_note_file,
+            commands::list_note_files,
+            commands::delete_note_file,
         ])
         .setup(|app| {
             // System tray icon with right-click menu

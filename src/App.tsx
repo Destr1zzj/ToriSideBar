@@ -11,6 +11,7 @@ import { useDragSort } from "./hooks/useDragSort";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { useTheme, type ThemeId } from "./hooks/useTheme";
 import { useAutostart } from "./hooks/useAutostart";
+import { useNotes } from "./hooks/useNotes";
 
 import { AppListItem } from "./components/AppListItem";
 import { ManageAppItem } from "./components/ManageAppItem";
@@ -18,7 +19,9 @@ import { AddAppModal } from "./components/AddAppModal";
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
+import { loadNotes, loadNoteOpacity, saveNoteOpacity } from "./utils/storage";
 import { exportConfig, serializeConfig, parseConfigFile, applyConfig } from "./utils/storage";
+import type { Note } from "./types";
 import "./App.css";
 
 export default function App() {
@@ -36,10 +39,14 @@ export default function App() {
   } = useUpdateCheck();
   const { themeId, customColors, setTheme, setCustomColors } = useTheme();
   const { autostart, toggleAutostart } = useAutostart();
+  const { setAllNotes } = useNotes();
 
   const [isManaging, setIsManaging] = useState(false);
   const [skipListAnim, setSkipListAnim] = useState(false);
   const [manageAppsExpanded, setManageAppsExpanded] = useState(false);
+  const [widgetSettingsExpanded, setWidgetSettingsExpanded] = useState(false);
+  const [noteStoragePath, setNoteStoragePath] = useState<string>("");
+  const [noteOpacity, setNoteOpacity] = useState<number>(() => loadNoteOpacity());
   const [showAdd, setShowAdd] = useState(false);
   const [showImportEdge, setShowImportEdge] = useState(false);
   const [shortcutInput, setShortcutInput] = useState(globalShortcut);
@@ -296,8 +303,40 @@ export default function App() {
     }
   }, [isManaging]);
 
+  const openToolsWindow = useCallback(async () => {
+    try {
+      await invoke("open_tools_window");
+    } catch (e) {
+      console.error("Failed to open tools window:", e);
+    }
+  }, []);
+
+  // Listen for note-window updates to refresh local notes state.
+  useEffect(() => {
+    const promise = listen("notes-updated", async () => {
+      const all = await loadNotes();
+      setAllNotes(all);
+    });
+    return () => {
+      promise.then((unlisten) => unlisten());
+    };
+  }, [setAllNotes]);
+
+  // Load note storage path once for widget settings display.
+  useEffect(() => {
+    invoke<string>("get_note_storage_path")
+      .then((path) => setNoteStoragePath(path))
+      .catch(() => setNoteStoragePath(""));
+  }, []);
+
+  // Persist note opacity changes.
+  const handleNoteOpacityChange = useCallback((value: number) => {
+    setNoteOpacity(value);
+    saveNoteOpacity(value);
+  }, []);
+
   const handleExport = useCallback(async () => {
-    const config = exportConfig();
+    const config = await exportConfig();
     try {
       const path = await invoke<string>("export_config", { content: serializeConfig(config) });
       setExportStatus({ type: "success", message: t("configExported") + ": " + path });
@@ -319,7 +358,7 @@ export default function App() {
         event.target.value = "";
         return;
       }
-      applyConfig(config);
+      await applyConfig(config);
       setApps(config.data.apps);
       setActiveApps(new Set(config.data.activeApps));
       setBarPosition(config.data.barPosition);
@@ -328,6 +367,8 @@ export default function App() {
       setShortcutInput(config.data.globalShortcut);
       setLang(config.data.language as "en" | "zh");
       setClickOutsideHide(config.data.clickOutsideHide);
+      const notes: Note[] = await loadNotes();
+      setAllNotes(notes);
       await invoke("sync_language", { lang: config.data.language });
       setImportStatus({ type: "success", message: t("configImported") });
     } catch (e) {
@@ -335,7 +376,7 @@ export default function App() {
     }
     setTimeout(() => setImportStatus(null), 4000);
     event.target.value = "";
-  }, [t]);
+  }, [t, setAllNotes]);
 
   return (
     <div className={`sidebar sidebar-${barPosition}`}>
@@ -405,6 +446,47 @@ export default function App() {
         <div className={`settings-outer ${!manageAppsExpanded ? "expanded" : ""}`}>
         <div className="settings-inner">
         <div className="manage-settings">
+          <div className="widget-settings-fold">
+            <button
+              className="widget-settings-toggle"
+              onClick={() => setWidgetSettingsExpanded((p) => !p)}
+            >
+              <span className={`fold-arrow ${widgetSettingsExpanded ? "expanded" : ""}`}>▶</span>
+              {t("widgetSettings")}
+            </button>
+          </div>
+          {widgetSettingsExpanded && (
+            <div className="widget-settings-panel">
+              <div className="setting-row">
+                <label>{t("noteStoragePath")}</label>
+                <div className="note-path-row">
+                  <span className="note-path-value" title={noteStoragePath}>
+                    {noteStoragePath || "—"}
+                  </span>
+                  <button
+                    className="note-path-open-btn"
+                    onClick={() => invoke("open_note_storage_path").catch(() => {})}
+                    title={t("openFolder")}
+                  >
+                    {t("openFolder")}
+                  </button>
+                </div>
+              </div>
+              <div className="setting-row">
+                <label>{t("noteOpacity")}</label>
+                <div className="slider-row">
+                  <input
+                    type="range"
+                    min={30}
+                    max={100}
+                    value={Math.round(noteOpacity * 100)}
+                    onChange={(e) => handleNoteOpacityChange(parseInt(e.target.value, 10) / 100)}
+                  />
+                  <span className="slider-value">{Math.round(noteOpacity * 100)}%</span>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="setting-row">
             <label>{t("barPosition")}</label>
             <div className="lang-selector">
@@ -647,10 +729,13 @@ export default function App() {
         {!isManaging ? (
           <>
             <button className="action-btn" onClick={openAddModal} title={t("addApp")}>
-              <img src="/icons/add.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
+              <img src="/icons/add.png" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} />
+            </button>
+            <button className="action-btn" onClick={openToolsWindow} title={t("tools")}>
+              <img src="/icons/tools.png" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} />
             </button>
             <button className="action-btn manage-btn-wrap" onClick={toggleManageMode} title={t("manage")}>
-              <img src="/icons/set.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
+              <img src="/icons/set.png" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} />
               {hasUpdate && <span className="update-badge" />}
             </button>
             <button
@@ -663,7 +748,7 @@ export default function App() {
               }}
               title={t("exitApp")}
             >
-              <img src="/icons/quit.png" style={{ width: 20, height: 20, filter: 'var(--icon-filter)' }} />
+              <img src="/icons/quit.png" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} />
             </button>
           </>
         ) : (
@@ -692,6 +777,7 @@ export default function App() {
           }}
         />
       )}
+
     </div>
   );
 }

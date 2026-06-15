@@ -446,6 +446,99 @@ pub async fn check_update() -> Result<UpdateInfo, String> {
 }
 
 // ------------------------------------------------------------------
+// Note storage path
+// ------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_note_storage_path(app: AppHandle) -> Result<String, String> {
+    let path = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("ToriSidebar");
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn open_note_storage_path(app: AppHandle) -> Result<(), String> {
+    let path = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("ToriSidebar");
+    let _ = std::fs::create_dir_all(&path);
+    tauri_plugin_opener::open_path(&path, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ------------------------------------------------------------------
+// Note file persistence (.md)
+// ------------------------------------------------------------------
+
+fn ensure_note_dir(storage_path: &str) -> Result<std::path::PathBuf, String> {
+    let dir = std::path::PathBuf::from(storage_path);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+fn note_file_path(storage_path: &str, note_id: &str) -> Result<std::path::PathBuf, String> {
+    let dir = ensure_note_dir(storage_path)?;
+    let safe_id: String = note_id
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+        .collect();
+    Ok(dir.join(format!("{}.md", safe_id)))
+}
+
+#[tauri::command]
+pub fn read_note_file(storage_path: String, note_id: String) -> Result<String, String> {
+    let path = note_file_path(&storage_path, &note_id)?;
+    if !path.exists() {
+        return Ok(String::new());
+    }
+    std::fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn write_note_file(
+    storage_path: String,
+    note_id: String,
+    content: String,
+) -> Result<(), String> {
+    let path = note_file_path(&storage_path, &note_id)?;
+    std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn list_note_files(storage_path: String) -> Result<Vec<String>, String> {
+    let dir = ensure_note_dir(&storage_path)?;
+    let mut files: Vec<String> = std::fs::read_dir(&dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.extension()? == "md" {
+                path.file_stem()?.to_str().map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    files.sort();
+    Ok(files)
+}
+
+#[tauri::command]
+pub fn delete_note_file(storage_path: String, note_id: String) -> Result<(), String> {
+    let path = note_file_path(&storage_path, &note_id)?;
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+// ------------------------------------------------------------------
 // Click outside to hide
 // ------------------------------------------------------------------
 

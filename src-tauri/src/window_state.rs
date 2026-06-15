@@ -8,6 +8,8 @@ pub struct WindowState {
     pub y: i32,
     pub width: u32,
     pub height: u32,
+    #[serde(default)]
+    pub x: i32,
 }
 
 fn state_path() -> std::path::PathBuf {
@@ -40,6 +42,10 @@ pub fn get(label: &str) -> Option<WindowState> {
     load_all().get(label).cloned()
 }
 
+pub fn get_note(label: &str) -> Option<WindowState> {
+    load_all().get(label).cloned()
+}
+
 pub fn save(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
@@ -50,6 +56,25 @@ pub fn save(app: &AppHandle, label: &str) {
                     y: pos.y,
                     width: size.width,
                     height: 0, // height is always derived from sidebar, never saved
+                    x: 0,
+                },
+            );
+            save_all(&all);
+        }
+    }
+}
+
+pub fn save_note(app: &AppHandle, label: &str) {
+    if let Some(window) = app.get_webview_window(label) {
+        if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
+            let mut all = load_all();
+            all.insert(
+                label.to_string(),
+                WindowState {
+                    x: pos.x,
+                    y: pos.y,
+                    width: size.width,
+                    height: size.height,
                 },
             );
             save_all(&all);

@@ -5,3 +5,10 @@ export interface AppItem {
   url: string;
   icon: string;
 }
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: number;
+}
