@@ -1899,6 +1899,24 @@ body {
   overflow: hidden;
 }
 
+/* Hide scrollbars in note windows while keeping content scrollable */
+.note-window ::-webkit-scrollbar,
+.note-window::-webkit-scrollbar {
+  display: none;
+}
+
+.note-window,
+.note-body,
+.milkdown-note-body,
+.milkdown-note-body .vditor-note-editor,
+.milkdown-note-body .vditor-note-editor .vditor,
+.milkdown-note-body .vditor-note-editor .vditor-content,
+.milkdown-note-body .vditor-note-editor .vditor-ir,
+.milkdown-note-body .vditor-note-editor .vditor-ir pre.vditor-reset {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 /* Vditor overrides for note window */
 .milkdown-note-body .vditor-note-editor .vditor {
   --panel-background-color: transparent;
