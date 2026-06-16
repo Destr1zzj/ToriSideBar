@@ -4,6 +4,14 @@ All notable changes to ToriSidebar. / ToriSidebar 的所有重要更新。
 
 ---
 
+## Unreleased / 待发布
+
+### Improved / 改进
+
+- 🪟 Sticky note windows no longer appear on the Windows taskbar. 便签窗口不再在 Windows 任务栏显示占位图标。
+
+---
+
 ## v1.4.2 — 2026-06-15
 
 ### Fixed / 修复
