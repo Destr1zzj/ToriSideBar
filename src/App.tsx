@@ -19,7 +19,7 @@ import { AddAppModal } from "./components/AddAppModal";
 import { ImportEdgeAppsModal } from "./components/ImportEdgeAppsModal";
 import { LanguageSelector } from "./components/LanguageSelector";
 import type { AppItem } from "./types";
-import { loadNotes, loadNoteOpacity, saveNoteOpacity } from "./utils/storage";
+import { loadNotes, loadNoteOpacity, saveNoteOpacity, loadOpenNotes } from "./utils/storage";
 import { exportConfig, serializeConfig, parseConfigFile, applyConfig } from "./utils/storage";
 import type { Note } from "./types";
 import "./App.css";
@@ -327,6 +327,19 @@ export default function App() {
     invoke<string>("get_note_storage_path")
       .then((path) => setNoteStoragePath(path))
       .catch(() => setNoteStoragePath(""));
+  }, []);
+
+  // Restore previously opened note windows on startup.
+  useEffect(() => {
+    const openIds = loadOpenNotes();
+    if (openIds.length === 0) return;
+    // Give the backend a moment to finish setup before creating windows.
+    const timer = setTimeout(() => {
+      openIds.forEach((id) => {
+        invoke("open_note_window", { noteId: id }).catch(() => {});
+      });
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   // Persist note opacity changes.

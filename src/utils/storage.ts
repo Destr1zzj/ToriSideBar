@@ -13,6 +13,7 @@ const CLICK_OUTSIDE_KEY = "tori-sidebar-click-outside-hide";
 const AUTO_HIDE_ON_APP_OPEN_KEY = "tori-sidebar-auto-hide-on-app-open";
 const NOTES_KEY = "tori-sidebar-notes";
 const NOTE_OPACITY_KEY = "tori-sidebar-note-opacity";
+const OPEN_NOTES_KEY = "tori-sidebar-open-notes";
 
 let storagePathCache: string | null = null;
 let notesCache: Note[] | null = null;
@@ -389,4 +390,32 @@ export async function applyConfig(config: ToriConfig) {
   if (typeof d.clickOutsideHide === "boolean") saveClickOutsideHide(d.clickOutsideHide);
   if (typeof d.autoHideOnAppOpen === "boolean") saveAutoHideOnAppOpen(d.autoHideOnAppOpen);
   if (Array.isArray(d.notes)) await saveNotes(d.notes);
+}
+
+export function loadOpenNotes(): string[] {
+  try {
+    const stored = localStorage.getItem(OPEN_NOTES_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((id): id is string => typeof id === "string");
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+export function saveOpenNotes(ids: string[]) {
+  localStorage.setItem(OPEN_NOTES_KEY, JSON.stringify(ids));
+}
+
+export function addOpenNote(id: string) {
+  const current = loadOpenNotes();
+  if (!current.includes(id)) {
+    saveOpenNotes([...current, id]);
+  }
+}
+
+export function removeOpenNote(id: string) {
+  const current = loadOpenNotes();
+  saveOpenNotes(current.filter((noteId) => noteId !== id));
 }

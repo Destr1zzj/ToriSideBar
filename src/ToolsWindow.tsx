@@ -3,7 +3,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import { useI18n } from "./i18n";
-import { loadNotes, deleteNote as deleteNoteFile, saveNoteContent, invalidateNotesCache } from "./utils/storage";
+import {
+  loadNotes,
+  deleteNote as deleteNoteFile,
+  saveNoteContent,
+  invalidateNotesCache,
+  addOpenNote,
+  removeOpenNote,
+} from "./utils/storage";
 import type { Note } from "./types";
 
 type ToolsView = "tools" | "notes";
@@ -21,17 +28,25 @@ export function ToolsWindow() {
 
   useEffect(() => {
     refreshNotes();
-    const promise = listen("notes-updated", () => {
-      refreshNotes();
-    });
+    const promises = [
+      listen("notes-updated", () => {
+        refreshNotes();
+      }),
+      listen<string>("note-window-closed", (event) => {
+        const closedLabel = event.payload;
+        const closedId = closedLabel.replace(/^note-/, "");
+        removeOpenNote(closedId);
+      }),
+    ];
     return () => {
-      promise.then((unlisten) => unlisten());
+      promises.forEach((promise) => promise.then((unlisten) => unlisten()));
     };
   }, []);
 
   const openNote = async (id: string) => {
     try {
       await invoke("open_note_window", { noteId: id });
+      addOpenNote(id);
     } catch (e) {
       console.error("Failed to open note window:", e);
     }
@@ -43,6 +58,7 @@ export function ToolsWindow() {
     await refreshNotes();
     try {
       await invoke("open_note_window", { noteId: id });
+      addOpenNote(id);
     } catch (e) {
       console.error("Failed to open note window:", e);
     }
@@ -50,6 +66,7 @@ export function ToolsWindow() {
 
   const deleteNote = async (id: string) => {
     await deleteNoteFile(id);
+    removeOpenNote(id);
     await refreshNotes();
   };
 
