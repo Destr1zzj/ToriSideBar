@@ -715,7 +715,7 @@ pub async fn open_note_window(app: AppHandle, note_id: String) -> Result<(), Str
     .transparent(true)
     .background_color(Color(0, 0, 0, 0))
     .always_on_top(true)
-    .skip_taskbar(false)
+    .skip_taskbar(true)
     .resizable(true)
     .maximizable(false)
     .minimizable(false)
